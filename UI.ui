@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>955</width>
+    <height>912</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>雷电公报</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>resource/weather-thunder.png</normaloff>resource/weather-thunder.png</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_1">
+      <item>
+       <widget class="QLabel" name="year_label">
+        <property name="text">
+         <string>年份</string>
+        </property>
+        <property name="buddy">
+         <cstring>year_DateEdit</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDateEdit" name="year_DateEdit">
+        <property name="displayFormat">
+         <string>yyyy</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_1">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="province_label">
+        <property name="text">
+         <string>省份</string>
+        </property>
+        <property name="buddy">
+         <cstring>province_comboBox</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="province_comboBox">
+        <item>
+         <property name="text">
+          <string>河南</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>浙江</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="target_area_label">
+        <property name="text">
+         <string>目标区域</string>
+        </property>
+        <property name="buddy">
+         <cstring>target_area_comboBox</cstring>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="target_area_comboBox"/>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>80</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_4">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item row="1" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout_1">
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <widget class="QWidget" name="density_tab">
+         <attribute name="title">
+          <string>闪电密度分布图</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QLabel" name="density_cell_label">
+              <property name="text">
+               <string>插值网格大小</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="density_cell_spinBox">
+              <property name="maximum">
+               <number>30</number>
+              </property>
+              <property name="value">
+               <number>10</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_8">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="density_class_label">
+              <property name="text">
+               <string>制图分类数目</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="density_class_spinBox">
+              <property name="maximum">
+               <number>15</number>
+              </property>
+              <property name="value">
+               <number>10</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_5">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QGraphicsView" name="density_view"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="day_tab">
+         <attribute name="title">
+          <string>雷暴日分布图</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QLabel" name="day_cell_label">
+              <property name="text">
+               <string>插值半径大小</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="day_cell_spinBox">
+              <property name="minimum">
+               <number>5</number>
+              </property>
+              <property name="maximum">
+               <number>30</number>
+              </property>
+              <property name="value">
+               <number>15</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_6">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="day_class_label">
+              <property name="text">
+               <string>制图分类数目</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="day_class_spinBox">
+              <property name="minimum">
+               <number>5</number>
+              </property>
+              <property name="maximum">
+               <number>15</number>
+              </property>
+              <property name="value">
+               <number>10</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_7">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QGraphicsView" name="day_view">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="regions_stats_tab">
+         <attribute name="title">
+          <string>分区统计</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item>
+             <widget class="QTableView" name="province_stats_table"/>
+            </item>
+            <item>
+             <widget class="QTableView" name="region_stats_table"/>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="month_stats_tab">
+         <attribute name="title">
+          <string>分月统计</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <item>
+           <widget class="QTableView" name="month_stats_table"/>
+          </item>
+          <item>
+           <widget class="QGraphicsView" name="month_stats_view"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="hour_stats_tab">
+         <attribute name="title">
+          <string>分时段统计</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="verticalLayout_9">
+          <item>
+           <widget class="QTableView" name="hours_stats_table"/>
+          </item>
+          <item>
+           <widget class="QGraphicsView" name="hour_stats_view"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="intensity_stats_tab">
+         <attribute name="title">
+          <string>强度统计</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QTableView" name="intensity_stats_table"/>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_7">
+              <item>
+               <widget class="QGraphicsView" name="negative_view"/>
+              </item>
+              <item>
+               <widget class="QGraphicsView" name="positive_view"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="progressBar">
+        <property name="value">
+         <number>24</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>955</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="file_menu">
+    <property name="title">
+     <string>文件</string>
+    </property>
+    <addaction name="open_doc_action"/>
+    <addaction name="open_charts_action"/>
+    <addaction name="separator"/>
+    <addaction name="export_doc_action"/>
+    <addaction name="export_charts_action"/>
+    <addaction name="separator"/>
+    <addaction name="exit_action"/>
+   </widget>
+   <widget class="QMenu" name="help_menu">
+    <property name="title">
+     <string>帮助</string>
+    </property>
+    <addaction name="help_action"/>
+    <addaction name="about_action"/>
+   </widget>
+   <widget class="QMenu" name="action_menu">
+    <property name="title">
+     <string>操作</string>
+    </property>
+    <addaction name="load_data_action"/>
+    <addaction name="execute_action"/>
+   </widget>
+   <addaction name="file_menu"/>
+   <addaction name="action_menu"/>
+   <addaction name="help_menu"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="load_data_action"/>
+   <addaction name="execute_action"/>
+   <addaction name="separator"/>
+   <addaction name="open_doc_action"/>
+   <addaction name="open_charts_action"/>
+   <addaction name="separator"/>
+   <addaction name="export_doc_action"/>
+   <addaction name="export_charts_action"/>
+  </widget>
+  <action name="help_action">
+   <property name="text">
+    <string>使用说明</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
+  </action>
+  <action name="about_action">
+   <property name="text">
+    <string>关于</string>
+   </property>
+   <property name="shortcut">
+    <string>F2</string>
+   </property>
+  </action>
+  <action name="export_charts_action">
+   <property name="icon">
+    <iconset>
+     <normaloff>resource/export_charts.png</normaloff>resource/export_charts.png</iconset>
+   </property>
+   <property name="text">
+    <string>导出图表</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+C</string>
+   </property>
+  </action>
+  <action name="export_doc_action">
+   <property name="icon">
+    <iconset>
+     <normaloff>resource/export_doc.png</normaloff>resource/export_doc.png</iconset>
+   </property>
+   <property name="text">
+    <string>导出文档</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+D</string>
+   </property>
+  </action>
+  <action name="load_data_action">
+   <property name="icon">
+    <iconset>
+     <normaloff>resource/load_data.png</normaloff>resource/load_data.png</iconset>
+   </property>
+   <property name="text">
+    <string>加载数据</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="execute_action">
+   <property name="icon">
+    <iconset>
+     <normaloff>resource/excute.png</normaloff>resource/excute.png</iconset>
+   </property>
+   <property name="text">
+    <string>执行</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="open_doc_action">
+   <property name="icon">
+    <iconset>
+     <normaloff>resource/open_doc.png</normaloff>resource/open_doc.png</iconset>
+   </property>
+   <property name="text">
+    <string>打开文档</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="open_charts_action">
+   <property name="icon">
+    <iconset>
+     <normaloff>resource/open_charts.png</normaloff>resource/open_charts.png</iconset>
+   </property>
+   <property name="text">
+    <string>打开图表</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
+   </property>
+  </action>
+  <action name="exit_action">
+   <property name="text">
+    <string>退出</string>
+   </property>
+   <property name="shortcut">
+    <string>F4</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
