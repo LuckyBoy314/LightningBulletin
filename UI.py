@@ -2,21 +2,27 @@
 
 # Form implementation generated from reading ui file 'UI.ui'
 #
-# Created: Sat Mar 04 17:54:17 2017
+# Created: Sat Mar 04 18:11:02 2017
 #      by: PyQt5 UI code generator 5.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import time
 
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(955, 912)
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        self.lastyear = int(time.strftime('%Y', time.localtime(time.time()))) - 1
+        self.setupUi()
+
+    def setupUi(self):
+        self.setObjectName("self")
+        self.resize(925, 935)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        MainWindow.setWindowIcon(icon)
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.setWindowIcon(icon)
+        self.centralwidget = QtWidgets.QWidget(self)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -31,6 +37,7 @@ class Ui_MainWindow(object):
         self.year_label.setObjectName("year_label")
         self.horizontalLayout_1.addWidget(self.year_label)
         self.year_DateEdit = QtWidgets.QDateEdit(self.centralwidget)
+        self.year_DateEdit.setDateTime(QtCore.QDateTime(QtCore.QDate(self.lastyear, 1, 1), QtCore.QTime(0, 0, 0)))
         self.year_DateEdit.setObjectName("year_DateEdit")
         self.horizontalLayout_1.addWidget(self.year_DateEdit)
         spacerItem = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -50,6 +57,13 @@ class Ui_MainWindow(object):
         self.horizontalLayout_1.addWidget(self.target_area_label)
         self.target_area_comboBox = QtWidgets.QComboBox(self.centralwidget)
         self.target_area_comboBox.setObjectName("target_area_comboBox")
+        self.target_area_comboBox.addItem("")
+        self.target_area_comboBox.addItem("")
+        self.target_area_comboBox.addItem("")
+        self.target_area_comboBox.addItem("")
+        self.target_area_comboBox.addItem("")
+        self.target_area_comboBox.addItem("")
+        self.target_area_comboBox.addItem("")
         self.horizontalLayout_1.addWidget(self.target_area_comboBox)
         spacerItem2 = QtWidgets.QSpacerItem(80, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem2)
@@ -191,12 +205,12 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.intensity_stats_tab, "")
         self.verticalLayout_1.addWidget(self.tabWidget)
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
-        self.progressBar.setProperty("value", 24)
+        self.progressBar.setProperty("value", 0)
         self.progressBar.setObjectName("progressBar")
         self.verticalLayout_1.addWidget(self.progressBar)
         self.gridLayout.addLayout(self.verticalLayout_1, 1, 0, 1, 1)
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainWindow)
+        self.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(self)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 955, 23))
         self.menubar.setObjectName("menubar")
         self.file_menu = QtWidgets.QMenu(self.menubar)
@@ -205,48 +219,49 @@ class Ui_MainWindow(object):
         self.help_menu.setObjectName("help_menu")
         self.action_menu = QtWidgets.QMenu(self.menubar)
         self.action_menu.setObjectName("action_menu")
-        MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
-        self.toolBar = QtWidgets.QToolBar(MainWindow)
+        self.setStatusBar(self.statusbar)
+        self.toolBar = QtWidgets.QToolBar(self)
+        self.toolBar.setStatusTip("")
         self.toolBar.setObjectName("toolBar")
-        MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
-        self.help_action = QtWidgets.QAction(MainWindow)
+        self.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
+        self.help_action = QtWidgets.QAction(self)
         self.help_action.setObjectName("help_action")
-        self.about_action = QtWidgets.QAction(MainWindow)
+        self.about_action = QtWidgets.QAction(self)
         self.about_action.setObjectName("about_action")
-        self.export_charts_action = QtWidgets.QAction(MainWindow)
+        self.export_charts_action = QtWidgets.QAction(self)
         icon1 = QtGui.QIcon()
         icon1.addPixmap(QtGui.QPixmap("resource/export_charts.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.export_charts_action.setIcon(icon1)
         self.export_charts_action.setObjectName("export_charts_action")
-        self.export_doc_action = QtWidgets.QAction(MainWindow)
+        self.export_doc_action = QtWidgets.QAction(self)
         icon2 = QtGui.QIcon()
         icon2.addPixmap(QtGui.QPixmap("resource/export_doc.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.export_doc_action.setIcon(icon2)
         self.export_doc_action.setObjectName("export_doc_action")
-        self.load_data_action = QtWidgets.QAction(MainWindow)
+        self.load_data_action = QtWidgets.QAction(self)
         icon3 = QtGui.QIcon()
         icon3.addPixmap(QtGui.QPixmap("resource/load_data.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.load_data_action.setIcon(icon3)
         self.load_data_action.setObjectName("load_data_action")
-        self.execute_action = QtWidgets.QAction(MainWindow)
+        self.execute_action = QtWidgets.QAction(self)
         icon4 = QtGui.QIcon()
         icon4.addPixmap(QtGui.QPixmap("resource/excute.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.execute_action.setIcon(icon4)
         self.execute_action.setObjectName("execute_action")
-        self.open_doc_action = QtWidgets.QAction(MainWindow)
+        self.open_doc_action = QtWidgets.QAction(self)
         icon5 = QtGui.QIcon()
         icon5.addPixmap(QtGui.QPixmap("resource/open_doc.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.open_doc_action.setIcon(icon5)
         self.open_doc_action.setObjectName("open_doc_action")
-        self.open_charts_action = QtWidgets.QAction(MainWindow)
+        self.open_charts_action = QtWidgets.QAction(self)
         icon6 = QtGui.QIcon()
         icon6.addPixmap(QtGui.QPixmap("resource/open_charts.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.open_charts_action.setIcon(icon6)
         self.open_charts_action.setObjectName("open_charts_action")
-        self.exit_action = QtWidgets.QAction(MainWindow)
+        self.exit_action = QtWidgets.QAction(self)
         self.exit_action.setObjectName("exit_action")
         self.file_menu.addAction(self.open_doc_action)
         self.file_menu.addAction(self.open_charts_action)
@@ -273,60 +288,159 @@ class Ui_MainWindow(object):
         self.year_label.setBuddy(self.year_DateEdit)
         self.province_label.setBuddy(self.province_comboBox)
         self.target_area_label.setBuddy(self.target_area_comboBox)
-
-        self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-    def retranslateUi(self, MainWindow):
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+        self.center()
+        self.show()
+
+        self.handle_events()
+
+    def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "雷电公报"))
-        self.year_label.setText(_translate("MainWindow", "年份"))
-        self.year_DateEdit.setDisplayFormat(_translate("MainWindow", "yyyy"))
-        self.province_label.setText(_translate("MainWindow", "省份"))
-        self.province_comboBox.setItemText(0, _translate("MainWindow", "河南"))
-        self.province_comboBox.setItemText(1, _translate("MainWindow", "浙江"))
-        self.target_area_label.setText(_translate("MainWindow", "目标区域"))
-        self.density_cell_label.setText(_translate("MainWindow", "插值网格大小"))
-        self.density_class_label.setText(_translate("MainWindow", "制图分类数目"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.density_tab), _translate("MainWindow", "闪电密度分布图"))
-        self.day_cell_label.setText(_translate("MainWindow", "插值半径大小"))
-        self.day_class_label.setText(_translate("MainWindow", "制图分类数目"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.day_tab), _translate("MainWindow", "雷暴日分布图"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.regions_stats_tab), _translate("MainWindow", "分区统计"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.month_stats_tab), _translate("MainWindow", "分月统计"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.hour_stats_tab), _translate("MainWindow", "分时段统计"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.intensity_stats_tab), _translate("MainWindow", "强度统计"))
-        self.file_menu.setTitle(_translate("MainWindow", "文件"))
-        self.help_menu.setTitle(_translate("MainWindow", "帮助"))
-        self.action_menu.setTitle(_translate("MainWindow", "操作"))
-        self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
-        self.help_action.setText(_translate("MainWindow", "使用说明"))
-        self.help_action.setShortcut(_translate("MainWindow", "F1"))
-        self.about_action.setText(_translate("MainWindow", "关于"))
-        self.about_action.setShortcut(_translate("MainWindow", "F2"))
-        self.export_charts_action.setText(_translate("MainWindow", "导出图表"))
-        self.export_charts_action.setShortcut(_translate("MainWindow", "Alt+C"))
-        self.export_doc_action.setText(_translate("MainWindow", "导出文档"))
-        self.export_doc_action.setShortcut(_translate("MainWindow", "Alt+D"))
-        self.load_data_action.setText(_translate("MainWindow", "加载数据"))
-        self.load_data_action.setShortcut(_translate("MainWindow", "Ctrl+N"))
-        self.execute_action.setText(_translate("MainWindow", "执行"))
-        self.execute_action.setShortcut(_translate("MainWindow", "F5"))
-        self.open_doc_action.setText(_translate("MainWindow", "打开文档"))
-        self.open_doc_action.setShortcut(_translate("MainWindow", "Ctrl+D"))
-        self.open_charts_action.setText(_translate("MainWindow", "打开图表"))
-        self.open_charts_action.setShortcut(_translate("MainWindow", "Ctrl+C"))
-        self.exit_action.setText(_translate("MainWindow", "退出"))
-        self.exit_action.setShortcut(_translate("MainWindow", "F4"))
+        self.setWindowTitle(_translate("self", "雷电公报"))
+        self.year_label.setText(_translate("self", "年份"))
+        self.year_DateEdit.setDisplayFormat(_translate("self", "yyyy"))
+        self.province_label.setText(_translate("self", "省份"))
+        self.province_comboBox.setItemText(0, _translate("self", "河南"))
+        self.province_comboBox.setItemText(1, _translate("self", "浙江"))
+        self.target_area_label.setText(_translate("self", "目标区域"))
+        self.target_area_comboBox.setItemText(0, _translate("MainWindow", "新乡市"))
+        self.target_area_comboBox.setItemText(1, _translate("MainWindow", "延津县"))
+        self.target_area_comboBox.setItemText(2, _translate("MainWindow", "新乡县"))
+        self.target_area_comboBox.setItemText(3, _translate("MainWindow", "辉县市"))
+        self.target_area_comboBox.setItemText(4, _translate("MainWindow", "卫辉市"))
+        self.target_area_comboBox.setItemText(5, _translate("MainWindow", "获嘉县"))
+        self.target_area_comboBox.setItemText(6, _translate("MainWindow", "封丘县"))
+        self.density_cell_label.setText(_translate("self", "插值网格大小"))
+        self.density_class_label.setText(_translate("self", "制图分类数目"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.density_tab), _translate("self", "闪电密度分布图"))
+        self.day_cell_label.setText(_translate("self", "插值半径大小"))
+        self.day_class_label.setText(_translate("self", "制图分类数目"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.day_tab), _translate("self", "雷暴日分布图"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.regions_stats_tab), _translate("self", "分区统计"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.month_stats_tab), _translate("self", "分月统计"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.hour_stats_tab), _translate("self", "分时段统计"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.intensity_stats_tab), _translate("self", "强度统计"))
+        self.file_menu.setTitle(_translate("self", "文件"))
+        self.help_menu.setTitle(_translate("self", "帮助"))
+        self.action_menu.setTitle(_translate("self", "操作"))
+        self.toolBar.setWindowTitle(_translate("self", "toolBar"))
+        self.help_action.setText(_translate("self", "使用说明"))
+        self.help_action.setStatusTip(_translate("self", "使用说明"))
+        self.help_action.setShortcut(_translate("self", "F1"))
+        self.about_action.setText(_translate("self", "关于"))
+        self.about_action.setStatusTip(_translate("self", "关于"))
+        self.about_action.setShortcut(_translate("self", "F2"))
+        self.export_charts_action.setText(_translate("self", "导出图表"))
+        self.export_charts_action.setToolTip(_translate("self", "导出所有GIS图和统计图表"))
+        self.export_charts_action.setStatusTip(_translate("self", "导出所有GIS图和统计图表"))
+        self.export_charts_action.setShortcut(_translate("self", "Alt+C"))
+        self.export_doc_action.setText(_translate("self", "导出文档"))
+        self.export_doc_action.setToolTip(_translate("self", "导出公报word文档"))
+        self.export_doc_action.setStatusTip(_translate("self", "导出公报word文档"))
+        self.export_doc_action.setShortcut(_translate("self", "Alt+D"))
+        self.load_data_action.setText(_translate("self", "加载数据"))
+        self.load_data_action.setToolTip(_translate("self", "制作雷电公报图表前，必须加载电闪数据"))
+        self.load_data_action.setStatusTip(_translate("self", "制作雷电公报图表前，必须加载电闪数据"))
+        self.load_data_action.setShortcut(_translate("self", "Ctrl+N"))
+        self.execute_action.setText(_translate("self", "执行"))
+        self.execute_action.setToolTip(_translate("self", "点击开始执行"))
+        self.execute_action.setStatusTip(_translate("self", "点击开始执行"))
+        self.execute_action.setShortcut(_translate("self", "F5"))
+        self.open_doc_action.setText(_translate("self", "打开文档"))
+        self.open_doc_action.setToolTip(_translate("self", "打开公报word文档"))
+        self.open_doc_action.setStatusTip(_translate("self", "打开公报word文档"))
+        self.open_doc_action.setShortcut(_translate("self", "Ctrl+D"))
+        self.open_charts_action.setText(_translate("self", "打开图表"))
+        self.open_charts_action.setToolTip(_translate("self", "打开公报统计图表"))
+        self.open_charts_action.setStatusTip(_translate("self", "打开公报统计图表"))
+        self.open_charts_action.setShortcut(_translate("self", "Ctrl+C"))
+        self.exit_action.setText(_translate("self", "退出"))
+        self.exit_action.setShortcut(_translate("self", "F4"))
+
+    def handle_events(self):
+        self.about_action.triggered.connect(self.show_about)
+        self.load_data_action.triggered.connect(self.load_data)
+
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+    def show_about(self):
+        self.about = About_Dialog()
+
+    def load_data(self):
+        fnames = QtWidgets.QFileDialog.getOpenFileNames(self, u'请选择原始的电闪数据',
+                                              u'Z:/ZHUF/数据/闪电数据',
+                                              'Text files (*.txt);;All(*.*)')
+
+        #self.in_parameters[u'origin_data_path'] = fnames[0]
+
+class About_Dialog(QtWidgets.QDialog):
+    def __init__(self):
+        super(About_Dialog, self).__init__()
+        self.setupUi()
+
+    def setupUi(self):
+        self.setObjectName("Dialog")
+        self.resize(491, 261)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
+        self.setSizePolicy(sizePolicy)
+        self.setMinimumSize(QtCore.QSize(491, 261))
+        self.setMaximumSize(QtCore.QSize(491, 261))
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.setWindowIcon(icon)
+        self.label = QtWidgets.QLabel(self)
+        self.label.setGeometry(QtCore.QRect(0, 0, 491, 141))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
+        self.label.setSizePolicy(sizePolicy)
+        self.label.setText("")
+        self.label.setPixmap(QtGui.QPixmap("resource/about.jpg"))
+        self.label.setScaledContents(True)
+        self.label.setObjectName("label")
+        self.textBrowser = QtWidgets.QTextBrowser(self)
+        self.textBrowser.setGeometry(QtCore.QRect(0, 140, 491, 141))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.textBrowser.sizePolicy().hasHeightForWidth())
+        self.textBrowser.setSizePolicy(sizePolicy)
+        self.textBrowser.setObjectName("textBrowser")
+
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
+        self.show()
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("Dialog", "关于"))
+        self.textBrowser.setHtml(_translate("Dialog", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'SimSun\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:12pt; font-weight:600;\"> 雷电公报-v1.0</span></p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;\"><br /></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:11pt;\"> 联系：976309391@qq.com; zhufeng314@163.com </span></p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:11pt;\"><br /></p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:11pt;\"><br /></p>\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:11pt;\">©</span> 新乡市气象局 延津县气象局  All rights reserved.</p></body></html>"))
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
+    ui = MainWindow()
     sys.exit(app.exec_())
 

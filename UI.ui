@@ -147,7 +147,7 @@
       <item>
        <widget class="QTabWidget" name="tabWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>5</number>
         </property>
         <widget class="QWidget" name="density_tab">
          <attribute name="title">
@@ -382,7 +382,7 @@
       <item>
        <widget class="QProgressBar" name="progressBar">
         <property name="value">
-         <number>24</number>
+         <number>0</number>
         </property>
        </widget>
       </item>
@@ -434,6 +434,9 @@
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
+   <property name="statusTip">
+    <string/>
+   </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
    </attribute>
@@ -453,12 +456,18 @@
    <property name="text">
     <string>使用说明</string>
    </property>
+   <property name="statusTip">
+    <string>使用说明</string>
+   </property>
    <property name="shortcut">
     <string>F1</string>
    </property>
   </action>
   <action name="about_action">
    <property name="text">
+    <string>关于</string>
+   </property>
+   <property name="statusTip">
     <string>关于</string>
    </property>
    <property name="shortcut">
@@ -473,6 +482,12 @@
    <property name="text">
     <string>导出图表</string>
    </property>
+   <property name="toolTip">
+    <string>导出所有GIS图和统计图表</string>
+   </property>
+   <property name="statusTip">
+    <string>导出所有GIS图和统计图表</string>
+   </property>
    <property name="shortcut">
     <string>Alt+C</string>
    </property>
@@ -484,6 +499,12 @@
    </property>
    <property name="text">
     <string>导出文档</string>
+   </property>
+   <property name="toolTip">
+    <string>导出公报word文档</string>
+   </property>
+   <property name="statusTip">
+    <string>导出公报word文档</string>
    </property>
    <property name="shortcut">
     <string>Alt+D</string>
@@ -497,6 +518,12 @@
    <property name="text">
     <string>加载数据</string>
    </property>
+   <property name="toolTip">
+    <string>制作雷电公报图表前，必须加载电闪数据</string>
+   </property>
+   <property name="statusTip">
+    <string>制作雷电公报图表前，必须加载电闪数据</string>
+   </property>
    <property name="shortcut">
     <string>Ctrl+N</string>
    </property>
@@ -508,6 +535,12 @@
    </property>
    <property name="text">
     <string>执行</string>
+   </property>
+   <property name="toolTip">
+    <string>点击开始执行</string>
+   </property>
+   <property name="statusTip">
+    <string>点击开始执行</string>
    </property>
    <property name="shortcut">
     <string>F5</string>
@@ -521,6 +554,12 @@
    <property name="text">
     <string>打开文档</string>
    </property>
+   <property name="toolTip">
+    <string>打开公报word文档</string>
+   </property>
+   <property name="statusTip">
+    <string>打开公报word文档</string>
+   </property>
    <property name="shortcut">
     <string>Ctrl+D</string>
    </property>
@@ -532,6 +571,12 @@
    </property>
    <property name="text">
     <string>打开图表</string>
+   </property>
+   <property name="toolTip">
+    <string>打开公报统计图表</string>
+   </property>
+   <property name="statusTip">
+    <string>打开公报统计图表</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+C</string>
