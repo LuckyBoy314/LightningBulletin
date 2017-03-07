@@ -414,6 +414,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.about_action.triggered.connect(self.showAbout)
         self.load_data_action.triggered.connect(self.loadData)
         self.execute_action.triggered.connect(self.execute)
+        self.exit_action.triggered.connect(self.close)
 
         self.province_comboBox .activated[str].connect(self.updateProvince)
         self.target_area_comboBox.activated[str].connect(self.updateTargetArea)
@@ -485,7 +486,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         self.execute_action.setDisabled(True)
-        self.statusbar.setStatusTip(u'正在制图中……')
+        self.statusbar.showMessage(u'正在制图中……')
         self.progressBar.setMaximum(0)
         self.progressBar.setMinimum(0)
 
@@ -579,6 +580,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.day_class_spinBox.setDisabled(False)
 
         #self.action_save_pic.setDisabled(False)
+
+    def closeEvent(self, event):
+
+        reply = QtWidgets.QMessageBox.question(self, u'退出',u'真的要退出程序吗？',
+                                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                               QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):
