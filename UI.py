@@ -328,6 +328,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
         self.initSizePosition()
+        self.setRegionStatsTable()
         self.show()
 
         self.handleEvents()
@@ -465,6 +466,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.in_parameters[u'day_class'] = nclass
 
     def execute(self):
+        reply = QtWidgets.QMessageBox.question(self, u'确定', u'确定是制作%s的%s公报吗？'%(
+                                                self.in_parameters[u'datetime'],self.in_parameters[u'target_area']),
+                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                               QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.No:
+            return
 
         dir = u"E:/Documents/工作/雷电公报/闪电定位原始文本数据/" + self.in_parameters[u'datetime']
 
@@ -591,6 +598,27 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             event.ignore()
 
+    def setRegionStatsTable(self):
+        self.model_province_stats = QtGui.QStandardItemModel(2,11,self.province_stats_table)
+        #self.model_province_stats.setHeaderData(0, QtCore.Qt.Horizontal,u'地区')
+        self.model_province_stats.setHeaderData(0, QtCore.Qt.Horizontal, u'杭州')
+        self.model_province_stats.setHeaderData(1, QtCore.Qt.Horizontal, u'宁波')
+        self.model_province_stats.setHeaderData(2, QtCore.Qt.Horizontal, u'湖州')
+        self.model_province_stats.setHeaderData(3, QtCore.Qt.Horizontal, u'嘉兴')
+        self.model_province_stats.setHeaderData(4, QtCore.Qt.Horizontal, u'绍兴')
+        self.model_province_stats.setHeaderData(5, QtCore.Qt.Horizontal, u'金华')
+        self.model_province_stats.setHeaderData(6, QtCore.Qt.Horizontal, u'台州')
+        self.model_province_stats.setHeaderData(7, QtCore.Qt.Horizontal, u'温州')
+        self.model_province_stats.setHeaderData(8, QtCore.Qt.Horizontal, u'衢州')
+        self.model_province_stats.setHeaderData(9, QtCore.Qt.Horizontal, u'丽水')
+        self.model_province_stats.setHeaderData(10, QtCore.Qt.Horizontal, u'舟山')
+
+        self.model_province_stats.setHeaderData(0, QtCore.Qt.Vertical, u'地闪次数')
+        self.model_province_stats.setHeaderData(1, QtCore.Qt.Vertical, u'平均密度\n(次/km²)')
+
+        self.province_stats_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignCenter)
+
+        self.province_stats_table.setModel(self.model_province_stats)
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):
