@@ -14,7 +14,7 @@ from shutil import move,copy
 from Main import mainProcess
 import  os
 
-class WorkProcess(QtCore.QObject):
+class WorkerProcess(QtCore.QObject):
     '''
     自定义进程，进程由Python模块multiprocess创建
     并由pyqt的信号处理机制创建与主调进程的通信，通知子进程是否结束
@@ -22,7 +22,7 @@ class WorkProcess(QtCore.QObject):
     trigger = QtCore.pyqtSignal()
 
     def __init__(self):
-        super(WorkProcess, self).__init__()
+        super(WorkerProcess, self).__init__()
         self.timer = QtCore.QTimer(self)  #创建计时器
         self.timer.timeout.connect(self.timeOut)  #连接计时器周期结束事件
 
@@ -32,7 +32,7 @@ class WorkProcess(QtCore.QObject):
         self.timer.start(1000) #启动计时器，计时器周期为1秒（1000毫秒）
 
     def timeOut(self):  #计时器一个周期结束即触发一个timeout事件，然后调用此函数，主要用于检测子进程是否结束
-        if not self.p.is_alive():  # 当前子进程完成后
+        if not self.p.is_alive():  # 每隔一秒钟检查进程是否结束，当前子进程完成后
             self.trigger.emit()  # 发出处理完成信息
             self.timer.stop()  # 并停止计时器，否则在同一进程下再次运行会导致过早判断子进程的状态
 
@@ -517,9 +517,9 @@ class MainWindow(QtWidgets.QMainWindow):
         #     except Exception,inst:
         #         print infile
 
-        self.working_process = WorkProcess()
-        self.working_process.trigger.connect(self.finished)
-        self.working_process.beginRun(self.in_parameters)
+        self.worker_process = WorkerProcess()
+        self.worker_process.trigger.connect(self.finished)
+        self.worker_process.beginRun(self.in_parameters)
 
     def finished(self):
         cwd = os.getcwd()
@@ -600,25 +600,36 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setRegionStatsTable(self):
         self.model_province_stats = QtGui.QStandardItemModel(2,11,self.province_stats_table)
-        #self.model_province_stats.setHeaderData(0, QtCore.Qt.Horizontal,u'地区')
-        self.model_province_stats.setHeaderData(0, QtCore.Qt.Horizontal, u'杭州')
-        self.model_province_stats.setHeaderData(1, QtCore.Qt.Horizontal, u'宁波')
-        self.model_province_stats.setHeaderData(2, QtCore.Qt.Horizontal, u'湖州')
-        self.model_province_stats.setHeaderData(3, QtCore.Qt.Horizontal, u'嘉兴')
-        self.model_province_stats.setHeaderData(4, QtCore.Qt.Horizontal, u'绍兴')
-        self.model_province_stats.setHeaderData(5, QtCore.Qt.Horizontal, u'金华')
-        self.model_province_stats.setHeaderData(6, QtCore.Qt.Horizontal, u'台州')
-        self.model_province_stats.setHeaderData(7, QtCore.Qt.Horizontal, u'温州')
-        self.model_province_stats.setHeaderData(8, QtCore.Qt.Horizontal, u'衢州')
-        self.model_province_stats.setHeaderData(9, QtCore.Qt.Horizontal, u'丽水')
-        self.model_province_stats.setHeaderData(10, QtCore.Qt.Horizontal, u'舟山')
 
-        self.model_province_stats.setHeaderData(0, QtCore.Qt.Vertical, u'地闪次数')
-        self.model_province_stats.setHeaderData(1, QtCore.Qt.Vertical, u'平均密度\n(次/km²)')
+        # self.model_province_stats.setHeaderData(0, QtCore.Qt.Horizontal, u'杭州')
+        # self.model_province_stats.setHeaderData(1, QtCore.Qt.Horizontal, u'宁波')
+        # self.model_province_stats.setHeaderData(2, QtCore.Qt.Horizontal, u'湖州')
+        # self.model_province_stats.setHeaderData(3, QtCore.Qt.Horizontal, u'嘉兴')
+        # self.model_province_stats.setHeaderData(4, QtCore.Qt.Horizontal, u'绍兴')
+        # self.model_province_stats.setHeaderData(5, QtCore.Qt.Horizontal, u'金华')
+        # self.model_province_stats.setHeaderData(6, QtCore.Qt.Horizontal, u'台州')
+        # self.model_province_stats.setHeaderData(7, QtCore.Qt.Horizontal, u'温州')
+        # self.model_province_stats.setHeaderData(8, QtCore.Qt.Horizontal, u'衢州')
+        # self.model_province_stats.setHeaderData(9, QtCore.Qt.Horizontal, u'丽水')
+        # self.model_province_stats.setHeaderData(10, QtCore.Qt.Horizontal, u'舟山')
+        #
+        # self.model_province_stats.setHeaderData(0, QtCore.Qt.Vertical, u'地闪次数')
+        # self.model_province_stats.setHeaderData(1, QtCore.Qt.Vertical, u'平均密度\n(次/km²)')
 
-        self.province_stats_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignCenter)
+        self.model_province_stats.setHorizontalHeaderLabels([u'杭州',u'宁波',u'湖州', u'嘉兴', u'绍兴',
+                                                             u'金华', u'台州', u'温州', u'衢州', u'丽水', u'舟山'])
+        self.model_province_stats.setVerticalHeaderLabels([u'地闪次数', u'平均密度\n(次/km²)'])
+
+        #self.province_stats_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignCenter)
 
         self.province_stats_table.setModel(self.model_province_stats)
+        #表格占满窗口，并可以活动
+        self.province_stats_table.resizeRowsToContents()
+        self.province_stats_table.horizontalHeader().setStretchLastSection(True)
+        self.province_stats_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        #self.province_stats_table.resizeColumnsToContents()
+        #设置表格内容不可编辑
+        self.province_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):

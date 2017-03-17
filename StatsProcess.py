@@ -1,649 +1,677 @@
-# -*- coding: utf-8 -*-
+# -*- coding: gbk -*-
 
 import pyodbc
 import os
 import time
 from win32com.client import DispatchEx
 import pickle
+import sys
 
 def dict2list(dic: dict):
-    ''' å°†å­—å…¸è½¬åŒ–ä¸ºåˆ—è¡¨ '''
+    ''' ½«×Öµä×ª»¯ÎªÁĞ±í '''
     keys = dic.keys()
     vals = dic.values()
     lst = [(key, val) for key, val in zip(keys, vals)]
     return lst
 
-def sqlQuery(year, province, target_area):
-    cwd = os.getcwd()  # è·å–å½“å‰å·¥ä½œç›®å½•ï¼Œä¾¿äºç¨‹åºç§»æ¤
 
-    # é“¾æ¥æ•°æ®åº“
-    database = ''.join([cwd,u"/temp/", province ,'/',year,'/SQL.mdb;'])
-    db = pyodbc.connect(''.join(['DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};','DBQ=',database]))
+def sqlQuery(year, province, target_area, cwd):
+    query_results = {}
+
+    # Á´½ÓÊı¾İ¿â
+    database = ''.join([cwd, u"/temp/", province, '/', year, '/SQL.mdb;'])
+
+    db = pyodbc.connect(''.join(['DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};', 'DBQ=', database]))
     cursor = db.cursor()
-    data_table = ''.join(['data', year]) #æŸ¥è¯¢è¡¨
+    data_table = ''.join(['data', year])  # ²éÑ¯±í
 
-    #æ‰“å¼€Excelåº”ç”¨ç¨‹åº
+    # ´ò¿ªExcelÓ¦ÓÃ³ÌĞò
     excel = DispatchEx('Excel.Application')
     excel.Visible = False
-    # æ‰“å¼€æ–‡ä»¶ï¼Œå³Excelå·¥ä½œè–„
-    workbook = excel.Workbooks.Open(''.join([cwd, u'/data/å…¬æŠ¥å›¾è¡¨æ¨¡æ¿.xlsx']))
+    # ´ò¿ªÎÄ¼ş£¬¼´Excel¹¤×÷±¡
+    workbook = excel.Workbooks.Open(''.join([cwd, u'/data/¹«±¨Í¼±íÄ£°å.xlsx']))
 
-    workspath = ''.join([cwd,u"/temp/", province ,'/',year,'/','GDB.gdb'])
-    f = open(os.path.join(workspath,'province_area.pkl'), 'rb')
-    province_area = pickle.load(f) #è¯¸å¦‚{'æ–°ä¹¡å¸‚': XXX, 'aå®‰é˜³å¸‚': XXX}
+    # ¶ÁÈ¡Ê¡ÏÂÊô¸÷µØ¼¶ÊĞÃæ»ı
+    workspath = ''.join([cwd, u"/temp/", province, '/', year, '/', 'GDB.gdb'])
+    f = open(os.path.join(workspath, 'province_area.pkl'), 'rb')
+    province_area = pickle.load(f)  # ÖîÈç{'ĞÂÏçÊĞ': XXX, '°²ÑôÊĞ': XXX}
     f.close()
 
-    #æŸ¥çœ‹è¾“å‡ºçš„ç»Ÿè®¡ä¿¡æ¯
-    workspath = ''.join([cwd,u"/temp/", province ,'/',year,'/',target_area,'.gdb'])
-    f = open(os.path.join(workspath,'stats.pkl'),'rb')
-    stat_density = pickle.load(f)#è¯¸å¦‚{'æ–°ä¹¡':(å¹³å‡å€¼ï¼Œæœ€å¤§å€¼ï¼Œæœ€å°å€¼)}
+    # ¶ÁÈ¡Ä¿±êµØ¼¶ÇøÓòµÄÀ×±©ÈÕºÍÉÁµçÃÜ¶ÈµÄÍ³¼ÆĞÅÏ¢
+    workspath = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb'])
+    f = open(os.path.join(workspath, 'stats.pkl'), 'rb')
+    stat_density = pickle.load(f)  # ÖîÈç{'ĞÂÏç':(×î´óÖµ£¬×îĞ¡Öµ)}
     stat_day = pickle.load(f)
     f.close()
 
-    f = open(os.path.join(workspath,'region_area.pkl'),'rb')
-    region_area = pickle.load(f) #è¯¸å¦‚{'æ–°ä¹¡å¸‚'ï¼šXXX, 'å»¶æ´¥å¿':XXX}
+    # ¶ÁÈ¡µØ¼¶ÊĞÏÂÊô¸÷ÏØÊĞÃæ»ı
+    f = open(os.path.join(workspath, 'region_area.pkl'), 'rb')
+    region_area = pickle.load(f)  # ÖîÈç{'ĞÂÏçÊĞ'£ºXXX, 'ÑÓ½òÏØ':XXX}
     f.close()
 
-
     try:
-        # ************æµ™æ±Ÿåˆ†åœ°åŒºç»Ÿè®¡**********
+        # ************·ÖµØÇøÍ³¼Æ**********
         sql = """
         SELECT count(*) AS num, Region
         FROM %s
         WHERE Province= \'%s\'
         GROUP BY Region
         ORDER BY count(*) DESC
-        """ % (data_table, province + 'çœ')
+        """ % (data_table, province + 'Ê¡')
 
-        #å¤„ç†SQLæŸ¥è¯¢ç»“æœï¼Œé¡ºä¾¿è®°å½•æœ¬åœ°åŒºåœ°é—ªæ¬¡æ•°åœ¨å…¨çœçš„æ’å
-        sum_province_dict = {} #å…¨çœå„åœ°åŒºåœ°é—ªæ€»æ•°
+        # ´¦ÀíSQL²éÑ¯½á¹û£¬Ë³±ã¼ÇÂ¼±¾µØÇøµØÉÁ´ÎÊıÔÚÈ«Ê¡µÄÅÅÃû
+        sum_province_dict = {}  # È«Ê¡¸÷µØÇøµØÉÁ×ÜÊı
         rank = 0
         for row in cursor.execute(sql):
-            sum_province_dict[row[1]] = row[0]  # ä»¥ Regionï¼šnumå»ºç«‹å­—å…¸ï¼Œæ–¹ä¾¿ä¸‹é¢èµ‹å€¼
-            rank+=1
-            #print type(row[1])
+            sum_province_dict[row[1]] = row[0]  # ÒÔ Region£ºnum½¨Á¢×Öµä£¬·½±ãÏÂÃæ¸³Öµ
+            rank += 1
+            # print type(row[1])
             if row[1] == target_area:
-                Sum_rank_in_province = rank #æœ¬åœ°åŒºåœ°é—ªæ¬¡æ•°åœ¨å…¨çœçš„æ’å
+                Sum_rank_in_province = rank  # ±¾µØÇøµØÉÁ´ÎÊıÔÚÈ«Ê¡µÄÅÅÃû
 
-        Sum_target_area = sum_province_dict[target_area]  #æœ¬åœ°åŒºåœ°é—ªæ€»æ•°
-        Density_target_area = Sum_target_area/province_area[target_area] #æœ¬åœ°åŒºåœ°é—ªå¯†åº¦
+        Sum_target_area = sum_province_dict[target_area]  # ±¾µØÇøµØÉÁ×ÜÊı
+        Density_target_area = Sum_target_area / province_area[target_area]  # ±¾µØÇøµØÉÁÃÜ¶È
 
-        #è®¡ç®—å…¨çœå„åœ°åŒºåœ°é—ªå¯†åº¦å’Œå…¨çœå¹³å‡å¯†åº¦
-        density_province_dict = {} #å…¨çœå„åœ°åŒºå¯†åº¦
+        # ¼ÆËãÈ«Ê¡¸÷µØÇøµØÉÁÃÜ¶ÈºÍÈ«Ê¡Æ½¾ùÃÜ¶È
+        density_province_dict = {}  # È«Ê¡¸÷µØÇøÃÜ¶È
         Density_province = 0
         for key in sum_province_dict:
-            density_province_dict[key] = sum_province_dict[key]/province_area[key]
-            Density_province+= density_province_dict[key]
-        Density_province/=len(province_area) #å…¨çœå¹³å‡åœ°é—ªå¯†åº¦
-        #å¯†åº¦ä»å¤§åˆ°å°è¿›è¡Œæ’åº
-        density_province_sorted = sorted(dict2list(density_province_dict),key = lambda d:d[1],reverse=True)
+            density_province_dict[key] = sum_province_dict[key] / province_area[key]
+            Density_province += density_province_dict[key]
+        Density_province /= len(province_area)  # È«Ê¡Æ½¾ùµØÉÁÃÜ¶È
+        # ÃÜ¶È´Ó´óµ½Ğ¡½øĞĞÅÅĞò
+        density_province_sorted = sorted(dict2list(density_province_dict), key=lambda d: d[1], reverse=True)
 
-        #è®¡ç®—æœ¬åœ°åŒºåœ°é—ªå¯†åº¦æ’å
+        # ¼ÆËã±¾µØÇøµØÉÁÃÜ¶ÈÅÅÃû
         rank = 0
         for item in density_province_sorted:
-            rank+=1
+            rank += 1
             if item[0] == target_area:
-                Density_rank_in_province = rank #æœ¬åœ°åŒºåœ°é—ªå¯†åº¦åœ¨å…¨çœçš„æ’å
+                Density_rank_in_province = rank  # ±¾µØÇøµØÉÁÃÜ¶ÈÔÚÈ«Ê¡µÄÅÅÃû
                 break
 
-        print('æœ¬åœ°åŒºåœ°é—ªæ€»æ•°ï¼š',Sum_target_area)
-        print('æœ¬åœ°åŒºåœ°é—ªæ€»æ•°åœ¨å…¨çœæ’åï¼š', Sum_rank_in_province)
-        print('å…¨çœå¯†åº¦ï¼š',Density_province)
-        print('æœ¬åœ°åŒºå¯†åº¦ï¼š',Density_target_area)
-        print('æœ¬åœ°åŒºå¯†åº¦åœ¨å…¨çœæ’åï¼š', Density_rank_in_province)
+        print('±¾µØÇøµØÉÁ×ÜÊı£º', Sum_target_area)
+        print('±¾µØÇøµØÉÁ×ÜÊıÔÚÈ«Ê¡ÅÅÃû£º', Sum_rank_in_province)
+        print('È«Ê¡ÃÜ¶È£º', Density_province)
+        print('±¾µØÇøÃÜ¶È£º', Density_target_area)
+        print('±¾µØÇøÃÜ¶ÈÔÚÈ«Ê¡ÅÅÃû£º', Density_rank_in_province)
 
-        # ********* ç»å…´åˆ†å¿ç»Ÿè®¡***********
+        query_results['Sum_target_area'] = Sum_target_area
+        query_results['Sum_rank_in_province'] = Sum_rank_in_province
+        query_results['Density_province'] = Density_province
+        query_results['Density_target_area'] = Density_target_area
+        query_results['Density_rank_in_province'] = Density_rank_in_province
+        # ********* ·ÖÏØÍ³¼Æ***********
         sql = """
         SELECT count(*) AS num, County
         FROM %s
         WHERE Region=\'%s\'
         GROUP BY County
         ORDER BY count(*) DESC
-        """ % (data_table,target_area)
+        """ % (data_table, target_area)
 
-        #å¤„ç†SQLæŸ¥è¯¢ç»“æœï¼Œé¡ºä¾¿è®°å½•åœ°é—ªæ¬¡æ•°çš„æœ€å¤§å’Œæœ€å°å€¼
-        sum_region_dict = {} #æœ¬åœ°åŒºä¸‹å±å„å¿åœ°é—ªæ€»æ•°
+        # ´¦ÀíSQL²éÑ¯½á¹û£¬Ë³±ã¼ÇÂ¼µØÉÁ´ÎÊıµÄ×î´óºÍ×îĞ¡Öµ
+        sum_region_dict = {}  # ±¾µØÇøÏÂÊô¸÷ÏØµØÉÁ×ÜÊı
         rank = 0
         num_region = len(region_area)
         for row in cursor.execute(sql):
-            sum_region_dict[row[1]] = row[0]  # ä»¥ Regionï¼šnumå»ºç«‹å­—å…¸ï¼Œæ–¹ä¾¿ä¸‹é¢èµ‹å€¼
-            rank+=1
-            if rank ==1:
-                Sum_max_county_name = row[1] #é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿å
-                Sum_max_in_region = row[0] #ä»¥åŠæ¬¡æ•°
+            sum_region_dict[row[1]] = row[0]  # ÒÔ Region£ºnum½¨Á¢×Öµä£¬·½±ãÏÂÃæ¸³Öµ
+            rank += 1
+            if rank == 1:
+                Sum_max_county_name = row[1]  # ÉÁµç´ÎÊı×î¶àµÄÏØÃû
+                Sum_max_in_region = row[0]  # ÒÔ¼°´ÎÊı
             elif rank == num_region:
-                Sum_min_county_name = row[1] #é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿å
-                Sum_min_in_region = row[0] #ä»¥åŠæ¬¡æ•°
+                Sum_min_county_name = row[1]  # ÉÁµç´ÎÊı×îÉÙµÄÏØÃû
+                Sum_min_in_region = row[0]  # ÒÔ¼°´ÎÊı
 
-        #è®¡ç®—åœ°é—ªæ€»æ•°æœ€å¤§ã€æœ€å°çš„å¿çš„å ç›®æ ‡åŒºåŸŸæ€»æ•°çš„æ¯”ä¾‹
-        Max_region_percent = Sum_max_in_region/float(Sum_target_area)*100
-        Min_region_percent = Sum_min_in_region/float(Sum_target_area)*100
+        # ¼ÆËãµØÉÁ×ÜÊı×î´ó¡¢×îĞ¡µÄÏØµÄÕ¼Ä¿±êÇøÓò×ÜÊıµÄ±ÈÀı
+        Max_region_percent = Sum_max_in_region / float(Sum_target_area) * 100
+        Min_region_percent = Sum_min_in_region / float(Sum_target_area) * 100
 
-        #è®¡ç®—æœ¬åœ°åŒºå„å¿å¸‚åœ°é—ªå¯†åº¦
+        # ¼ÆËã±¾µØÇø¸÷ÏØÊĞµØÉÁÃÜ¶È
         density_region_dict = {}
         for key in sum_region_dict:
-            density_region_dict[key] = sum_region_dict[key]/region_area[key]
-        #å¯†åº¦ä»å¤§åˆ°å°è¿›è¡Œæ’åº
-        density_region_sorted = sorted(dict2list(density_region_dict),key = lambda d:d[1],reverse=True)
-        #æœ€å¤§ã€æœ€å°å¯†åº¦
-        Density_max_county_name = density_region_sorted[0][0] #é—ªç”µå¯†åº¦æœ€é«˜çš„å¿å
-        Density_max_in_region = density_region_sorted[0][1] #é—ªç”µå¯†åº¦æœ€é«˜çš„å¿å¯†åº¦
-        Density_min_county_name = density_region_sorted[num_region-1][0] #é—ªç”µå¯†åº¦æœ€ä½çš„å¿å
-        Density_min_in_region = density_region_sorted[num_region-1][1] #é—ªç”µå¯†åº¦æœ€ä½çš„å¿å¯†åº¦
+            density_region_dict[key] = sum_region_dict[key] / region_area[key]
+        # ÃÜ¶È´Ó´óµ½Ğ¡½øĞĞÅÅĞò
+        density_region_sorted = sorted(dict2list(density_region_dict), key=lambda d: d[1], reverse=True)
+        # ×î´ó¡¢×îĞ¡ÃÜ¶È
+        Density_max_county_name = density_region_sorted[0][0]  # ÉÁµçÃÜ¶È×î¸ßµÄÏØÃû
+        Density_max_in_region = density_region_sorted[0][1]  # ÉÁµçÃÜ¶È×î¸ßµÄÏØÃÜ¶È
+        Density_min_county_name = density_region_sorted[num_region - 1][0]  # ÉÁµçÃÜ¶È×îµÍµÄÏØÃû
+        Density_min_in_region = density_region_sorted[num_region - 1][1]  # ÉÁµçÃÜ¶È×îµÍµÄÏØÃÜ¶È
 
+        print('ÉÁµç´ÎÊı×î¶àµÄÏØÃû:', Sum_max_county_name)
+        print('ÉÁµç´ÎÊı×î¶àµÄÏØ´ÎÊı:', Sum_max_in_region)
+        print('ÉÁµç´ÎÊı×îÉÙµÄÏØÃû:', Sum_min_county_name)
+        print('ÉÁµç´ÎÊı×îÉÙµÄÏØ´ÎÊı:', Sum_min_in_region)
 
+        print('ÉÁµçÃÜ¶È×î¶àµÄÏØÃû:', Density_max_county_name)
+        print('ÉÁµçÃÜ¶È×î¶àµÄÏØÃÜ¶È:', Density_max_in_region)
+        print('ÉÁµçÃÜ¶È×îÉÙµÄÏØÃû:', Density_min_county_name)
+        print('ÉÁµçÃÜ¶È×îÉÙµÄÏØÃÜ¶È:', Density_min_in_region)
+        print('µØÉÁ´ÎÊı×î´óÏØËùÕ¼±ÈÀı£º', Max_region_percent)
+        print('µØÉÁ´ÎÊı×îĞ¡ÏØËùÕ¼±ÈÀı£º', Min_region_percent)
 
-        print('é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿å:',Sum_max_county_name)
-        print('é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿æ¬¡æ•°:',Sum_max_in_region)
-        print('é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿å:',Sum_min_county_name)
-        print('é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿æ¬¡æ•°:',Sum_min_in_region)
+        query_results['Sum_max_county_name'] = Sum_max_county_name
+        query_results['Sum_max_in_region'] = Sum_max_in_region
+        query_results['Sum_min_county_name'] = Sum_min_county_name
+        query_results['Sum_min_in_region'] = Sum_min_in_region
+        query_results['Density_max_county_name'] = Density_max_county_name
+        query_results['Density_max_in_region'] = Density_max_in_region
+        query_results['Density_min_county_name'] = Density_min_county_name
+        query_results['Density_min_in_region'] = Density_min_in_region
+        query_results['Max_region_percent'] = Max_region_percent
+        query_results['Min_region_percent'] = Min_region_percent
 
-        print('é—ªç”µå¯†åº¦æœ€å¤šçš„å¿å:',Density_max_county_name)
-        print('é—ªç”µå¯†åº¦æœ€å¤šçš„å¿å¯†åº¦:',Density_max_in_region)
-        print('é—ªç”µå¯†åº¦æœ€å°‘çš„å¿å:',Density_min_county_name)
-        print('é—ªç”µå¯†åº¦æœ€å°‘çš„å¿å¯†åº¦:',Density_min_in_region)
-        print('åœ°é—ªæ¬¡æ•°æœ€å¤§å¿æ‰€å æ¯”ä¾‹ï¼š',Max_region_percent)
-        print('åœ°é—ªæ¬¡æ•°æœ€å°å¿æ‰€å æ¯”ä¾‹ï¼š',Min_region_percent)
-
-
-        # todo SQLæŸ¥è¯¢æœ‰å¾…ä¼˜åŒ–
-        # ************åˆ†æœˆç»Ÿè®¡ æœˆåœ°é—ªæ¬¡æ•°å’Œæœˆå¹³å‡å¼ºåº¦(è´Ÿé—ª)**************
+        # todo SQL²éÑ¯ÓĞ´ıÓÅ»¯
+        # ************·ÖÔÂÍ³¼Æ ÔÂµØÉÁ´ÎÊıºÍÔÂÆ½¾ùÇ¿¶È(¸ºÉÁ)**************
         sql = """
-        SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æœˆä»½
+        SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/1/1# AND Date_< #YEAR/2/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/2/1# AND Date_< #YEAR/3/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/3/1# AND Date_< #YEAR/4/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/4/1# AND Date_< #YEAR/5/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/5/1# AND Date_< #YEAR/6/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/6/1# AND Date_< #YEAR/7/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/7/1# AND Date_< #YEAR/8/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/8/1# AND Date_< #YEAR/9/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/9/1# AND Date_< #YEAR/10/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/10/1# AND Date_< #YEAR/11/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/11/1# AND Date_< #YEAR/12/1#
-        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æœˆä»½
+        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/12/1# AND Date_<=#YEAR/12/31#
-        ORDER BY æœˆä»½
-        """.replace('TARGET_AREA',target_area).replace('YEAR',year[0:4]).replace('QUERY_TABLE',data_table)
+        ORDER BY ÔÂ·İ
+        """.replace('TARGET_AREA', target_area).replace('YEAR', year[0:4]).replace('QUERY_TABLE', data_table)
 
-        sheet = workbook.Worksheets(u'åˆ†æœˆç»Ÿè®¡')
-        i = 1  # è¡Œå·
+        sheet = workbook.Worksheets(u'·ÖÔÂÍ³¼Æ')
+        i = 1  # ĞĞºÅ
         month = 0
-        sum_month_dict = {}#è®°å½•åˆ†æœˆåœ°é—ªæ€»æ•°
-        negative_intensity_dict= {} #è®°å½•åˆ†æœˆè´Ÿé—ªåœ°é—ªæ¬¡æ•°
+        sum_month_dict = {}  # ¼ÇÂ¼·ÖÔÂµØÉÁ×ÜÊı
+        negative_intensity_dict = {}  # ¼ÇÂ¼·ÖÔÂ¸ºÉÁµØÉÁ´ÎÊı
         for row in cursor.execute(sql):
             i += 1
-            month+=1
-            sheet.Cells(i, 2).Value = row[0]  # è´Ÿé—ªæ¬¡æ•°
-            sheet.Cells(i, 5).Value = negative_intensity_dict[month] = row[1] if row[1] is not None else 0  # è´Ÿé—ªå¼ºåº¦
+            month += 1
+            sheet.Cells(i, 2).Value = row[0]  # ¸ºÉÁ´ÎÊı
+            sheet.Cells(i, 5).Value = negative_intensity_dict[month] = row[1] if row[1] is not None else 0  # ¸ºÉÁÇ¿¶È
             sum_month_dict[month] = row[0]
 
-        #è´Ÿé—ªå¼ºåº¦å³°å€¼æ‰€åœ¨æœˆä»½
-        negative_intensity_sorted = sorted(dict2list(negative_intensity_dict),key = lambda d:d[1],reverse=True)
+        # ¸ºÉÁÇ¿¶È·åÖµËùÔÚÔÂ·İ
+        negative_intensity_sorted = sorted(dict2list(negative_intensity_dict), key=lambda d: d[1], reverse=True)
         Peak_month_negative_intensity = negative_intensity_sorted[0][0]
 
-    # ************åˆ†æœˆç»Ÿè®¡ æœˆåœ°é—ªæ¬¡æ•°å’Œæœˆå¹³å‡å¼ºåº¦(æ­£é—ª)**************
+        # ************·ÖÔÂÍ³¼Æ ÔÂµØÉÁ´ÎÊıºÍÔÂÆ½¾ùÇ¿¶È(ÕıÉÁ)**************
         sql = """
-        SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æœˆä»½
+        SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/1/1# AND Date_< #YEAR/2/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/2/1# AND Date_< #YEAR/3/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/3/1# AND Date_< #YEAR/4/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/4/1# AND Date_< #YEAR/5/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/5/1# AND Date_< #YEAR/6/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/6/1# AND Date_< #YEAR/7/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/7/1# AND Date_< #YEAR/8/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/8/1# AND Date_< #YEAR/9/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/9/1# AND Date_< #YEAR/10/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/10/1# AND Date_< #YEAR/11/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/11/1# AND Date_< #YEAR/12/1#
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æœˆä»½
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS ÔÂ·İ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/12/1# AND Date_<=#YEAR/12/31#
-        ORDER BY æœˆä»½
-        """.replace('TARGET_AREA',target_area).replace('YEAR',year[0:4]).replace('QUERY_TABLE',data_table)
+        ORDER BY ÔÂ·İ
+        """.replace('TARGET_AREA', target_area).replace('YEAR', year[0:4]).replace('QUERY_TABLE', data_table)
 
-        i = 1  # è¡Œå·
+        i = 1  # ĞĞºÅ
         month = 0
-        positive_intensity_dict = {}#è®°å½•æ­£é—ªå¼ºåº¦
+        positive_intensity_dict = {}  # ¼ÇÂ¼ÕıÉÁÇ¿¶È
         for row in cursor.execute(sql):
             i += 1
-            month+=1
-            sheet.Cells(i, 3).Value = row[0]  # æ­£é—ªæ¬¡æ•°
-            sheet.Cells(i, 6).Value = positive_intensity_dict[month] = row[1] if row[1] is not None else 0  # æ­£é—ªå¼ºåº¦
+            month += 1
+            sheet.Cells(i, 3).Value = row[0]  # ÕıÉÁ´ÎÊı
+            sheet.Cells(i, 6).Value = positive_intensity_dict[month] = row[1] if row[1] is not None else 0  # ÕıÉÁÇ¿¶È
             sum_month_dict[month] += row[0]
 
-        #è´Ÿé—ªå³°å€¼æœˆä»½
-        positive_intensity_sorted = sorted(dict2list(positive_intensity_dict),key = lambda d:d[1],reverse=True)
+        # ¸ºÉÁ·åÖµÔÂ·İ
+        positive_intensity_sorted = sorted(dict2list(positive_intensity_dict), key=lambda d: d[1], reverse=True)
         Peak_month_positive_intensity = positive_intensity_sorted[0][0]
 
-        sum_month_sorted = sorted(dict2list(sum_month_dict),key = lambda d:d[1],reverse=True)
-        #åœ°é—ªæ¬¡æ•°æœ€å¤šçš„æœˆä»½
+        sum_month_sorted = sorted(dict2list(sum_month_dict), key=lambda d: d[1], reverse=True)
+        # µØÉÁ´ÎÊı×î¶àµÄÔÂ·İ
         Max_month_region = sum_month_sorted[0][0]
-        #åœ°é—ªæ¬¡æ•°æœ€å¤šçš„ä¸‰ä¸ªæœˆ
-        Max_three_months = [sum_month_sorted[0][0],sum_month_sorted[1][0],sum_month_sorted[2][0]]
+        # µØÉÁ´ÎÊı×î¶àµÄÈı¸öÔÂ
+        Max_three_months = [sum_month_sorted[0][0], sum_month_sorted[1][0], sum_month_sorted[2][0]]
         Max_three_months.sort()
-        #åœ°é—ªæ¬¡æ•°æœ€å¤šä¸‰ä¸ªæœˆæ‰€å æ¯”ä¾‹
-        Max_months_percent = 100*(sum_month_sorted[0][1]+sum_month_sorted[1][1]+sum_month_sorted[2][1])/float(Sum_target_area)
-        #æ²¡æœ‰æ£€æµ‹åˆ°åœ°é—ªçš„æœˆä»½
-        Months_zero = [i[0] for i in sum_month_sorted if i[1]== 0]
+        # µØÉÁ´ÎÊı×î¶àÈı¸öÔÂËùÕ¼±ÈÀı
+        Max_months_percent = 100 * (sum_month_sorted[0][1] + sum_month_sorted[1][1] + sum_month_sorted[2][1]) / float(
+            Sum_target_area)
+        # Ã»ÓĞ¼ì²âµ½µØÉÁµÄÔÂ·İ
+        Months_zero = [i[0] for i in sum_month_sorted if i[1] == 0]
         Months_zero.sort()
 
-        print('æ­£é—ªå³°å€¼æœˆä»½:',Peak_month_negative_intensity)
-        print('è´Ÿé—ªå³°å€¼æœˆä»½:',Peak_month_positive_intensity)
-        print('åœ°é—ªæ¬¡æ•°æœ€å¤šçš„æœˆä»½:',Max_month_region)
-        print('åœ°é—ªæ¬¡æ•°æœ€å¤šçš„ä¸‰ä¸ªæœˆ:',Max_three_months)
-        print('åœ°é—ªæ¬¡æ•°æœ€å¤šä¸‰ä¸ªæœˆæ‰€å æ¯”ä¾‹:',Max_months_percent)
-        print('æ²¡æœ‰æ£€æµ‹åˆ°åœ°é—ªçš„æœˆä»½:',Months_zero)
+        print('ÕıÉÁ·åÖµÔÂ·İ:', Peak_month_negative_intensity)
+        print('¸ºÉÁ·åÖµÔÂ·İ:', Peak_month_positive_intensity)
+        print('µØÉÁ´ÎÊı×î¶àµÄÔÂ·İ:', Max_month_region)
+        print('µØÉÁ´ÎÊı×î¶àµÄÈı¸öÔÂ:', Max_three_months)
+        print('µØÉÁ´ÎÊı×î¶àÈı¸öÔÂËùÕ¼±ÈÀı:', Max_months_percent)
+        print('Ã»ÓĞ¼ì²âµ½µØÉÁµÄÔÂ·İ:', Months_zero)
 
-        #****æŸ¥è¯¢é›·æš´åˆæ—¥********
+        query_results['Peak_month_negative_intensity'] = Peak_month_negative_intensity
+        query_results['Peak_month_positive_intensity'] = Peak_month_positive_intensity
+        query_results['Max_month_region'] = Max_month_region
+        query_results['Max_three_months'] = Max_three_months
+        query_results['Max_months_percent'] = Max_months_percent
+        query_results['Months_zero'] = Months_zero
+
+        # ****²éÑ¯À×±©³õÈÕ********
         sql = """SELECT TOP 1 Date_
         From %s
         Where Region = \'%s\'
         Order By Date_, OBJECTID
-        """%(data_table,target_area)
+        """ % (data_table, target_area)
 
         for row in cursor.execute(sql):
-            First_date = row[0].strftime('%mM%dD').replace('M','æœˆ').replace('D','æ—¥')
-        print('é›·æš´åˆæ—¥:',First_date)
+            First_date = row[0].strftime('%mM%dD').replace('M', 'ÔÂ').replace('D', 'ÈÕ')
+        print('À×±©³õÈÕ:', First_date)
+        query_results['First_date'] = First_date
 
-        # ************åˆ†æ—¶æ®µç»Ÿè®¡ æ—¶æ®µåœ°é—ªæ¬¡æ•°å’Œæ—¶æ®µå¹³å‡å¼ºåº¦(è´Ÿé—ª)**************
+        # ************·ÖÊ±¶ÎÍ³¼Æ Ê±¶ÎµØÉÁ´ÎÊıºÍÊ±¶ÎÆ½¾ùÇ¿¶È(¸ºÉÁ)**************
         sql = """
-        SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,0 AS æ—¶æ®µ
+        SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,0 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=0
-        UNION SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æ—¶æ®µ
+        UNION SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=1
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=2
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=3
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=4
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=5
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=6
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=7
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=8
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=9
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=10
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=11
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=12
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,13 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,13 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=13
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,14 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,14 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=14
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,15 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,15 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=15
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,16 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,16 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=16
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,17 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,17 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=17
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,18 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,18 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=18
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,19 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,19 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=19
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,20 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,20 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=20
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,21 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,21 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=21
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,22 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,22 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=22
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,23 AS æ—¶æ®µ
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,23 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=23
-        ORDER BY æ—¶æ®µ
-        """.replace('TARGET_AREA',target_area).replace('QUERY_TABLE', data_table)
+        ORDER BY Ê±¶Î
+        """.replace('TARGET_AREA', target_area).replace('QUERY_TABLE', data_table)
 
-        sheet = workbook.Worksheets(u'åˆ†æ—¶æ®µç»Ÿè®¡')
-        i = 1  # è¡Œå·
+        sheet = workbook.Worksheets(u'·ÖÊ±¶ÎÍ³¼Æ')
+        i = 1  # ĞĞºÅ
         for row in cursor.execute(sql):
             i += 1
-            sheet.Cells(i, 2).Value = row[0]  # è´Ÿé—ªæ¬¡æ•°
-            sheet.Cells(i, 5).Value = row[1] if row[1] is not None else 0  # è´Ÿé—ªå¼ºåº¦
+            sheet.Cells(i, 2).Value = row[0]  # ¸ºÉÁ´ÎÊı
+            sheet.Cells(i, 5).Value = row[1] if row[1] is not None else 0  # ¸ºÉÁÇ¿¶È
 
-
-        # ************åˆ†æ—¶æ®µç»Ÿè®¡ æ—¶æ®µåœ°é—ªæ¬¡æ•°å’Œæ—¶æ®µå¹³å‡å¼ºåº¦(æ­£é—ª)**************
+        # ************·ÖÊ±¶ÎÍ³¼Æ Ê±¶ÎµØÉÁ´ÎÊıºÍÊ±¶ÎÆ½¾ùÇ¿¶È(ÕıÉÁ)**************
         sql = """
-        SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,0 AS æ—¶æ®µ
+        SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,0 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=0
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æ—¶æ®µ
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=1
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=2
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=3
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=4
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=5
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=6
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=7
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=8
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=9
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=10
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=11
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=12
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,13 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,13 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=13
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,14 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,14 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=14
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,15 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,15 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=15
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,16 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,16 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=16
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,17 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,17 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=17
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,18 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,18 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=18
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,19 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,19 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=19
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,20 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,20 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=20
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,21 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,21 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=21
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,22 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,22 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=22
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,23 AS æ—¶æ®µ
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,23 AS Ê±¶Î
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=23
-        ORDER BY æ—¶æ®µ
-        """.replace('TARGET_AREA',target_area).replace('QUERY_TABLE', data_table)
+        ORDER BY Ê±¶Î
+        """.replace('TARGET_AREA', target_area).replace('QUERY_TABLE', data_table)
 
-        i = 1  # è¡Œå·
+        i = 1  # ĞĞºÅ
         for row in cursor.execute(sql):
             i += 1
-            sheet.Cells(i, 3).Value = row[0]  # æ­£é—ªæ¬¡æ•°
-            sheet.Cells(i, 6).Value = row[1] if row[1] is not None else 0  # æ­£é—ªå¼ºåº¦
+            sheet.Cells(i, 3).Value = row[0]  # ÕıÉÁ´ÎÊı
+            sheet.Cells(i, 6).Value = row[1] if row[1] is not None else 0  # ÕıÉÁÇ¿¶È
 
-     # **********è´Ÿé—ªå¼ºåº¦åˆ†å¸ƒ**************
+            # **********¸ºÉÁÇ¿¶È·Ö²¼**************
         sql = """
-        SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,0 AS å·¦è¾¹ç•Œ,5 AS å³è¾¹ç•Œ
+        SELECT count(*) AS ¸ºÉÁ´ÎÊı,0 AS ×ó±ß½ç,5 AS ÓÒ±ß½ç
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=0 AND Abs(Intensity)<5
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,5,10
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,5,10
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=5 AND Abs(Intensity)<10
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,10,15
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,10,15
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=10 AND Abs(Intensity)<15
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,15,20
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,15,20
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=15 AND Abs(Intensity)<20
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,20,25
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,20,25
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=20 AND Abs(Intensity)<25
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,25,30
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,25,30
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=25 AND Abs(Intensity)<30
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,30,35
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,30,35
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=30 AND Abs(Intensity)<35
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,35,40
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,35,40
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=35 AND Abs(Intensity)<40
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,40,45
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,40,45
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=40 AND Abs(Intensity)<45
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,45,50
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,45,50
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=45 AND Abs(Intensity)<50
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,50,55
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,50,55
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=50 AND Abs(Intensity)<55
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,55,60
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,55,60
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=55 AND Abs(Intensity)<60
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,60,65
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,60,65
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=60 AND Abs(Intensity)<65
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,65,70
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,65,70
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=65 AND Abs(Intensity)<70
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,70,75
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,70,75
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=70 AND Abs(Intensity)<75
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,75,80
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,75,80
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=75 AND Abs(Intensity)<80
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,80,85
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,80,85
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=80 AND Abs(Intensity)<85
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,85,90
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,85,90
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=85 AND Abs(Intensity)<90
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,90,95
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,90,95
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=90 AND Abs(Intensity)<95
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,95,100
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,95,100
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=95 AND Abs(Intensity)<100
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,100,150
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,100,150
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=100 AND Abs(Intensity)<150
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,150,200
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,150,200
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=150 AND Abs(Intensity)<200
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,200,250
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,200,250
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=200 AND Abs(Intensity)<250
-        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,250,300
+        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,250,300
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=250 AND Abs(Intensity)<300
-        UNION SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,300,1000
+        UNION SELECT count(*) AS ¸ºÉÁ´ÎÊı,300,1000
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=300
-        ORDER BY å·¦è¾¹ç•Œ
-        """.replace('TARGET_AREA',target_area).replace("QUERY_TABLE", data_table)
+        ORDER BY ×ó±ß½ç
+        """.replace('TARGET_AREA', target_area).replace("QUERY_TABLE", data_table)
 
-        sheet = workbook.Worksheets(u'å¼ºåº¦åˆ†å¸ƒç»Ÿè®¡')
-        i = 1  # è¡Œå·
+        sheet = workbook.Worksheets(u'Ç¿¶È·Ö²¼Í³¼Æ')
+        i = 1  # ĞĞºÅ
         for row in cursor.execute(sql):
             i += 1
-            sheet.Cells(i, 3).Value = row[0]  # è´Ÿé—ªæ¬¡æ•°
+            sheet.Cells(i, 3).Value = row[0]  # ¸ºÉÁ´ÎÊı
 
-        # ***********æ­£é—ªå¼ºåº¦åˆ†å¸ƒ************
+        # ***********ÕıÉÁÇ¿¶È·Ö²¼************
         sql = """
-        SELECT count(*) AS æ­£é—ªæ¬¡æ•°,0 AS å·¦è¾¹ç•Œ,5 AS å³è¾¹ç•Œ
+        SELECT count(*) AS ÕıÉÁ´ÎÊı,0 AS ×ó±ß½ç,5 AS ÓÒ±ß½ç
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Intensity<5
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,5,10
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,5,10
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=5 AND Intensity<10
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,10,15
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,10,15
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=10 AND Intensity<15
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,15,20
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,15,20
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=15 AND Intensity<20
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,20,25
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,20,25
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=20 AND Intensity<25
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,25,30
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,25,30
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=25 AND Intensity<30
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,30,35
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,30,35
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=30 AND Intensity<35
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,35,40
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,35,40
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=35 AND Intensity<40
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,40,45
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,40,45
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=40 AND Intensity<45
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,45,50
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,45,50
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=45 AND Intensity<50
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,50,55
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,50,55
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=50 AND Intensity<55
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,55,60
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,55,60
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=55 AND Intensity<60
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,60,65
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,60,65
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=60 AND Intensity<65
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,65,70
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,65,70
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=65 AND Intensity<70
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,70,75
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,70,75
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=70 AND Intensity<75
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,75,80
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,75,80
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=75 AND Intensity<80
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,80,85
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,80,85
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=80 AND Intensity<85
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,85,90
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,85,90
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=85 AND Intensity<90
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,90,95
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,90,95
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=90 AND Intensity<95
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,95,100
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,95,100
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=95 AND Intensity<100
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,100,150
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,100,150
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=100 AND Intensity<150
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,150,200
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,150,200
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=150 AND Intensity<200
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,200,250
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,200,250
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=200 AND Intensity<250
-        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,250,300
+        union SELECT count(*) AS ÕıÉÁ´ÎÊı,250,300
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=250 AND Intensity<300
-        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°,300,1000
+        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı,300,1000
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=300
-        ORDER BY å·¦è¾¹ç•Œ
-        """.replace('TARGET_AREA',target_area).replace("QUERY_TABLE", data_table)
+        ORDER BY ×ó±ß½ç
+        """.replace('TARGET_AREA', target_area).replace("QUERY_TABLE", data_table)
 
-        i = 1  # è¡Œå·
+        i = 1  # ĞĞºÅ
         for row in cursor.execute(sql):
             i += 1
-            sheet.Cells(i, 4).Value = row[0]  # æ­£é—ªæ¬¡æ•°
+            sheet.Cells(i, 4).Value = row[0]  # ÕıÉÁ´ÎÊı
 
     finally:
-        db.close()  # å…³é—­æ•°æ®è¿æ¥
-        workbook.Save()  # ä¿å­˜EXCELå·¥ä½œè–„
-        workbook.Close()  # å…³é—­å·¥ä½œè–„æ–‡ä»¶
-        excel.Quit()  # å…³é—­EXCELåº”ç”¨ç¨‹åº
+        db.close()  # ¹Ø±ÕÊı¾İÁ¬½Ó
+        workbook.Save()  # ±£´æEXCEL¹¤×÷±¡
+        workbook.Close()  # ¹Ø±Õ¹¤×÷±¡ÎÄ¼ş
+        excel.Quit()  # ¹Ø±ÕEXCELÓ¦ÓÃ³ÌĞò
+
 
 if __name__ == "__main__":
-    year = u"2015å¹´"
-    province = u'æµ™æ±Ÿ'
-    target_area = u"ç»å…´å¸‚"
 
-    start = time.clock()
-    # ***********************æµ‹è¯•ç¨‹åº*********************************"
-    sqlQuery(year, province, target_area)
-    # ***********************æµ‹è¯•ç¨‹åº*********************************"
-    end = time.clock()
-    elapsed = end - start
-    print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))
+    (year, province, target_area,cwd) = sys.argv[1:]
 
+    # year = u"2015Äê"
+    # province = u'Õã½­'
+    # target_area = u"ÉÜĞËÊĞ"
+
+    # start = time.clock()
+    # # ***********************²âÊÔ³ÌĞò*********************************"
+    sqlQuery(year, province, target_area,cwd)
+    # # ***********************²âÊÔ³ÌĞò*********************************"
+    # end = time.clock()
+    # elapsed = end - start
+    # print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))

@@ -4,6 +4,8 @@ from GeoProcess import geoProcess
 from Mapping import mappingProcess
 import tkFileDialog
 import Tkinter
+import subprocess
+import os
 
 """
 主要输入：
@@ -35,6 +37,8 @@ def mainProcess(datetime, province,target_area, origin_data_path,
                 density_cell = '10', day_cell = '15',density_class = None, day_class = 10,
                 out_type = 'TIFF', out_path=None):
 
+    cwd = os.getcwd() #注意cwd在程序执行过程中会变化
+
     #数据预处理
     preProcess(datetime, province, origin_data_path)
 
@@ -51,6 +55,10 @@ def mainProcess(datetime, province,target_area, origin_data_path,
     """
     mappingProcess(datetime, province, target_area)
 
+    #启动外部程序，调用python3处理，注意命令行编码是gbk
+    subprocess.call([u'C:/Program Files/Python35/python.exe'.encode('gbk'),
+                     (cwd + u'/StatsProcess.py').encode('gbk'),
+                     datetime.encode('gbk'),province.encode('gbk'),target_area.encode('gbk'),cwd.encode('gbk')])
 
 if __name__ == "__main__":
     datetime = u"2015年"

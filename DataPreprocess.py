@@ -11,7 +11,7 @@ import cPickle as pickle
 
 """
 主要功能：
-    1.writeOrignData
+    1.writeOriginData
     将原始电闪数据（txt格式，每天一个txt）生成单一的txt文档，并符合ArcGIS表格数据格式要求
     2.generateDatabase
     将第一步生成的txt表格数据与省级分县地图叠加，为各个闪电定位点生成省-市-县三个字段信息
@@ -33,7 +33,7 @@ import cPickle as pickle
     2.origindata_withOID.shp临时文件
 """
 
-def writeOrignData(infiles, text_table):
+def writeOriginData(infiles, text_table):
     if os.path.isfile(text_table):
         return
     with open(text_table, 'w') as out_f:
@@ -104,7 +104,7 @@ def preProcess(datetime, province,infiles):
     arcpy.env.overwriteOutput = True
 
     text_table = ''.join([workspace , "/" , u"data" , datetime , u".txt"])
-    writeOrignData(infiles, text_table)
+    writeOriginData(infiles, text_table)
     database_path = generateDatabase(text_table, province)
 
     #建立数据库,以供SQL查询
@@ -112,20 +112,20 @@ def preProcess(datetime, province,infiles):
         arcpy.CreatePersonalGDB_management(workpath, "SQL.mdb")#在指定位置建立个人数据库
         arcpy.FeatureClassToGeodatabase_conversion(database_path,''.join([workpath,'/SQL.mdb']))#将文件数据库中的要素类导入到个人数据库
 
-    #计算省下属各地级市面积
+    #读取省下属各地级市面积，这要在地图数据中预先计算好，这只是读取
     province_area = {}
     province_feature = ''.join([cwd,u'/data/LightningBulletin.gdb/', province,u'_分区'])
     with SearchCursor(province_feature, ["Region","area"]) as cursor:
         for row in cursor:
             province_area[row[0]] = row[1]
 
-    f = file(os.path.join(workspace,'province_area.pkl'), 'wb')
+    f = open(os.path.join(workspace,'province_area.pkl'), 'wb')
     pickle.dump(province_area, f, pickle.HIGHEST_PROTOCOL)
     f.close()
 
 if __name__ == "__main__":
-    datetime = u"2016年"
-    province = u'河南'
+    datetime = u"2015年"
+    province = u'浙江'
     infiles = dialogOpenFile()
 
     start = time.clock()

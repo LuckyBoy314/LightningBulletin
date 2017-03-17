@@ -3,7 +3,7 @@ import math
 import os
 import time
 import arcpy
-from arcpy.sa import Spline,ZonalStatisticsAsTable
+from arcpy.sa import Spline, ZonalStatisticsAsTable
 from arcpy.da import SearchCursor
 import cPickle as pickle
 
@@ -30,6 +30,8 @@ import cPickle as pickle
     雷暴日插值点：dayPoints
     其他中间文件
 '''
+
+
 # 获取当前工作区域的范围
 def getExtents(infeature):
     extents = [row[0].extent for row in SearchCursor(infeature, "SHAPE@")]
@@ -60,17 +62,17 @@ def makeGrids(extents, cell_size):
     Top = ymax + YHeight
 
     # Set the extent of the fishnet
-    originCoordinate = ''.join([str(Left) , " " , str(Bottom)])
-    oppositeCoorner = ''.join([str(Right) , " " ,str(Top)])
+    originCoordinate = ''.join([str(Left), " ", str(Bottom)])
+    oppositeCoorner = ''.join([str(Right), " ", str(Top)])
 
     # Set the orientation
-    yAxisCoordinate = ''.join([str(Left) , " " , str(Bottom + 1)])
+    yAxisCoordinate = ''.join([str(Left), " ", str(Bottom + 1)])
 
     # Enter 0 for width and height - these values will be calculated by the tool
     cellSizeWidth = str(XWidth)
     cellSizeHeight = str(YHeight)
 
-    outputGrids = ''.join(["GRID" ,str(cell_size)])
+    outputGrids = ''.join(["GRID", str(cell_size)])
     arcpy.CreateFishnet_management(outputGrids, originCoordinate, yAxisCoordinate,
                                    cellSizeWidth, cellSizeHeight, '0', '0', oppositeCoorner, 'NO_LABELS', '#',
                                    'POLYGON')
@@ -79,25 +81,25 @@ def makeGrids(extents, cell_size):
 
 
 def clipData(origin_data, grid_feature, cell_size):
-    output_clip = ''.join(["clip" , str(cell_size)])
+    output_clip = ''.join(["clip", str(cell_size)])
     arcpy.Clip_analysis(origin_data, grid_feature, output_clip)
     return output_clip
 
 
 def lightningDensity(clip_feature, grid_feature, cell_size):
-    #if arcpy.Exists("lightningDensity.tif"):
+    # if arcpy.Exists("lightningDensity.tif"):
     #   return
-    intersect_feature = ''.join(["intersect" , str(cell_size)])
+    intersect_feature = ''.join(["intersect", str(cell_size)])
     arcpy.Intersect_analysis([clip_feature, grid_feature], intersect_feature)
 
-    frequency_table = ''.join(["intersect" , str(cell_size) , "_frequency"])
-    field_frequency = ''.join(["FID_GRID" ,str(cell_size)])
+    frequency_table = ''.join(["intersect", str(cell_size), "_frequency"])
+    field_frequency = ''.join(["FID_GRID", str(cell_size)])
     arcpy.Frequency_analysis(intersect_feature, frequency_table, field_frequency)
 
-    layer = ''.join(["GRID" ,str(cell_size)])
+    layer = ''.join(["GRID", str(cell_size)])
     arcpy.MakeFeatureLayer_management(grid_feature, layer)
 
-    field_join = ''.join(["FID_GRID" , str(cell_size)])
+    field_join = ''.join(["FID_GRID", str(cell_size)])
     arcpy.AddJoin_management(layer, "OID", frequency_table, field_join)
 
     density_points = "densityPoints"
@@ -108,31 +110,31 @@ def lightningDensity(clip_feature, grid_feature, cell_size):
 
 
 def lightningDay(clip_feature, grid_feature, cell_size):
-    #if arcpy.Exists("lightningDay.tif"):
+    # if arcpy.Exists("lightningDay.tif"):
     #    return
 
     # 建立圆形缓冲区
-    point_feature = ''.join(["point" , str(cell_size)])
+    point_feature = ''.join(["point", str(cell_size)])
     arcpy.FeatureToPoint_management(grid_feature, point_feature)
 
-    buffer_feature = ''.join(["buffer" , str(cell_size)])
-    buffer_distance = ''.join([str(cell_size) ," " , "Kilometers"])
+    buffer_feature = ''.join(["buffer", str(cell_size)])
+    buffer_distance = ''.join([str(cell_size), " ", "Kilometers"])
     arcpy.Buffer_analysis(point_feature, buffer_feature, buffer_distance)
 
-    intersect_feature =''.join(["intersect" , str(cell_size)])
+    intersect_feature = ''.join(["intersect", str(cell_size)])
     arcpy.Intersect_analysis([clip_feature, buffer_feature], intersect_feature)
 
-    field_frequency = ''.join(["FID_buffer",cell_size])
-    frequency_table1 = ''.join(["intersect" , str(cell_size) , "_frequency1"])
+    field_frequency = ''.join(["FID_buffer", cell_size])
+    frequency_table1 = ''.join(["intersect", str(cell_size), "_frequency1"])
     arcpy.Frequency_analysis(intersect_feature, frequency_table1, ["Date", field_frequency])
 
-    frequency_table2 = ''.join(["intersect" , str(cell_size) ,"_frequency2"])
+    frequency_table2 = ''.join(["intersect", str(cell_size), "_frequency2"])
     arcpy.Frequency_analysis(frequency_table1, frequency_table2, field_frequency)
 
-    layer = ''.join(["point" , str(cell_size)])
+    layer = ''.join(["point", str(cell_size)])
     arcpy.MakeFeatureLayer_management(point_feature, layer)
 
-    field_join = ''.join(["FID_buffer",cell_size])
+    field_join = ''.join(["FID_buffer", cell_size])
     arcpy.AddJoin_management(layer, "ORIG_FID", frequency_table2, field_join)
 
     day_points = "dayPoints"
@@ -140,55 +142,55 @@ def lightningDay(clip_feature, grid_feature, cell_size):
     lightning_day_raster = Spline(day_points, "FREQUENCY")
     lightning_day_raster.save("lightningDay")
 
-#计算目标区域下属各县市的电闪雷暴日、闪电密度的统计数字
+
+# 计算目标区域下属各县市的电闪雷暴日、闪电密度的统计数字
 def statsProcess(infeature, output):
-    #按{ 地区名：(平均值，最大值，最小值)}保留计算结果
+    # 按{ 地区名：(平均值，最大值，最小值)}保留计算结果
     stat_density = {}
     stat_day = {}
 
-    ZonalStatisticsAsTable(infeature,'NAME',"lightningDensity",'stat_density',"","ALL")
-    with SearchCursor('stat_density',["NAME","MEAN","MAX","MIN"]) as cursor:
+    ZonalStatisticsAsTable(infeature, 'NAME', "lightningDensity", 'stat_density', "", "ALL")
+    with SearchCursor('stat_density', ["NAME", "MAX", "MIN"]) as cursor:
         for row in cursor:
-            stat_density[row[0][:2]] = (
-                round(row[1]/100,2),round(row[2]/100,2), round(row[3]/100,2))
+            stat_density[row[0][:2]] = (round(row[1] / 100, 2), round(row[2] / 100, 2))
 
-    ZonalStatisticsAsTable(infeature,'NAME',"lightningDay",'stat_day',"","ALL")
-    with SearchCursor('stat_day',["NAME","MEAN","MAX","MIN"]) as cursor:
+    ZonalStatisticsAsTable(infeature, 'NAME', "lightningDay", 'stat_day', "", "ALL")
+    with SearchCursor('stat_day', ["NAME", "MAX", "MIN"]) as cursor:
         for row in cursor:
-            stat_day[row[0][:2]] = (
-                int(round(row[1])),int(round(row[2])),int(round(row[3])))
+            stat_day[row[0][:2]] = (int(round(row[1])), int(round(row[2])))
 
-    f = file(os.path.join(output,'stats.pkl'), 'wb')
+    f = open(os.path.join(output, 'stats.pkl'), 'wb')
     pickle.dump(stat_density, f, pickle.HIGHEST_PROTOCOL)
     pickle.dump(stat_day, f, pickle.HIGHEST_PROTOCOL)
     f.close()
 
-    #计算目标区域下属各县的面积
+    # 计算目标区域下属各县的面积
     region_area = {}
-    with SearchCursor(infeature, ["Name","area"]) as cursor:
+    with SearchCursor(infeature, ["Name", "area"]) as cursor:
         for row in cursor:
             region_area[row[0]] = row[1]
 
-    f = file(os.path.join(output,'region_area.pkl'), 'wb')
+    f = file(os.path.join(output, 'region_area.pkl'), 'wb')
     pickle.dump(region_area, f, pickle.HIGHEST_PROTOCOL)
     f.close()
 
+
 def geoProcess(datetime, province, target_area, density_cell="10", day_cell="15"):
-    #if arcpy.Exists("lightningDay") and arcpy.Exists("lightningDensity"):
+    # if arcpy.Exists("lightningDay") and arcpy.Exists("lightningDensity"):
     #   return
     cwd = os.getcwd()
-    #todo 新建数据库占用了十几秒的时间，可以考虑在之前并行处理
-    workpath = ''.join([cwd,u"/temp/", province ,'/',datetime])
-    workspace = ''.join([workpath,'/',target_area,'.gdb'])
+    # todo 新建数据库占用了十几秒的时间，可以考虑在之前并行处理
+    workpath = ''.join([cwd, u"/temp/", province, '/', datetime])
+    workspace = ''.join([workpath, '/', target_area, '.gdb'])
     if not arcpy.Exists(workspace):
-        arcpy.CreateFileGDB_management(workpath,''.join([target_area,'.gdb']))
+        arcpy.CreateFileGDB_management(workpath, ''.join([target_area, '.gdb']))
 
     arcpy.env.workspace = workspace
     arcpy.env.outputCoordinateSystem = arcpy.SpatialReference("WGS 1984")
     arcpy.env.overwriteOutput = True
 
-    origin_data = ''.join([workpath,u'/GDB.gdb/data',datetime])
-    infeature = ''.join([cwd,u'/data/LightningBulletin.gdb/',target_area])
+    origin_data = ''.join([workpath, u'/GDB.gdb/data', datetime])
+    infeature = ''.join([cwd, u'/data/LightningBulletin.gdb/', target_area])
     # 获取当前extent
     extents = getExtents(infeature)
 
@@ -215,13 +217,13 @@ def geoProcess(datetime, province, target_area, density_cell="10", day_cell="15"
     arcpy.Erase_analysis(grid_feature, infeature, mask_feature)
 
     ####计算相关统计参数
-    #statsProcess(infeature,workspace)
+    statsProcess(infeature, workspace)
 
 
 if __name__ == "__main__":
-    datetime = u"2016年"
-    province = u'河南'
-    target_area = u"新乡市"
+    datetime = u"2015年"
+    province = u'浙江'
+    target_area = u"绍兴市"
 
     start = time.clock()
     # ***********************测试程序*********************************"
