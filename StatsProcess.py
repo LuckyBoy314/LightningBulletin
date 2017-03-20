@@ -37,16 +37,16 @@ def sqlQuery(year, province, target_area, cwd):
     province_area = pickle.load(f)  # 诸如{'新乡市': XXX, '安阳市': XXX}
     f.close()
 
-    # 读取目标地级区域的雷暴日和闪电密度的统计信息
     workspath = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb'])
-    f = open(os.path.join(workspath, 'stats.pkl'), 'rb')
-    stat_density = pickle.load(f)  # 诸如{'新乡':(最大值，最小值)}
-    stat_day = pickle.load(f)
-    f.close()
-
     # 读取地级市下属各县市面积
     f = open(os.path.join(workspath, 'region_area.pkl'), 'rb')
     region_area = pickle.load(f)  # 诸如{'新乡市'：XXX, '延津县':XXX}
+    f.close()
+
+    # 读取目标地级区域的雷暴日和闪电密度的统计信息
+    f = open(os.path.join(workspath, 'stats.pkl'), 'rb')
+    stat_density = pickle.load(f)  # 诸如{'新乡':(最大值，最小值)}
+    stat_day = pickle.load(f)  # 诸如{'新乡':(平均值，最大值，最小值)}
     f.close()
 
     try:
@@ -70,15 +70,15 @@ def sqlQuery(year, province, target_area, cwd):
                 Sum_rank_in_province = rank  # 本地区地闪次数在全省的排名
 
         Sum_target_area = sum_province_dict[target_area]  # 本地区地闪总数
-        Density_target_area = Sum_target_area / province_area[target_area]  # 本地区地闪密度
+        Density_target_area = round(Sum_target_area / province_area[target_area],2) # 本地区地闪密度
 
         # 计算全省各地区地闪密度和全省平均密度
         density_province_dict = {}  # 全省各地区密度
         Density_province = 0
         for key in sum_province_dict:
-            density_province_dict[key] = sum_province_dict[key] / province_area[key]
+            density_province_dict[key] = round(sum_province_dict[key] / province_area[key],2)
             Density_province += density_province_dict[key]
-        Density_province /= len(province_area)  # 全省平均地闪密度
+        Density_province = round(Density_province/len(province_area),2)  # 全省平均地闪密度
         # 密度从大到小进行排序
         density_province_sorted = sorted(dict2list(density_province_dict), key=lambda d: d[1], reverse=True)
 
@@ -90,17 +90,28 @@ def sqlQuery(year, province, target_area, cwd):
                 Density_rank_in_province = rank  # 本地区地闪密度在全省的排名
                 break
 
-        print('本地区地闪总数：', Sum_target_area)
-        print('本地区地闪总数在全省排名：', Sum_rank_in_province)
-        print('全省密度：', Density_province)
-        print('本地区密度：', Density_target_area)
-        print('本地区密度在全省排名：', Density_rank_in_province)
+        #省分地区的电闪次数和密度
+        Stats_of_Province = {}
+        sum_of_province = 0
+        for key in sum_province_dict:
+            sum_of_province += sum_province_dict[key]
+            Stats_of_Province[key[:2]] = (sum_province_dict[key], density_province_dict[key])
+        Stats_of_Province[u'总计'] = (sum_of_province, Density_province)
+
+        # print('本地区地闪总数：', Sum_target_area)
+        # print('本地区地闪总数在全省排名：', Sum_rank_in_province)
+        # print('全省密度：', Density_province)
+        # print('本地区密度：', Density_target_area)
+        # print('本地区密度在全省排名：', Density_rank_in_province)
+        # print('省分地区统计：', Stats_of_Province)
 
         query_results['Sum_target_area'] = Sum_target_area
         query_results['Sum_rank_in_province'] = Sum_rank_in_province
         query_results['Density_province'] = Density_province
         query_results['Density_target_area'] = Density_target_area
         query_results['Density_rank_in_province'] = Density_rank_in_province
+        query_results['Stats_of_Province'] = Stats_of_Province
+
         # ********* 分县统计***********
         sql = """
         SELECT count(*) AS num, County
@@ -125,13 +136,13 @@ def sqlQuery(year, province, target_area, cwd):
                 Sum_min_in_region = row[0]  # 以及次数
 
         # 计算地闪总数最大、最小的县的占目标区域总数的比例
-        Max_region_percent = Sum_max_in_region / float(Sum_target_area) * 100
-        Min_region_percent = Sum_min_in_region / float(Sum_target_area) * 100
+        Max_region_percent = round(Sum_max_in_region / float(Sum_target_area) * 100,2)
+        Min_region_percent = round(Sum_min_in_region / float(Sum_target_area) * 100,2)
 
         # 计算本地区各县市地闪密度
         density_region_dict = {}
         for key in sum_region_dict:
-            density_region_dict[key] = sum_region_dict[key] / region_area[key]
+            density_region_dict[key] = round(sum_region_dict[key] / region_area[key],2)
         # 密度从大到小进行排序
         density_region_sorted = sorted(dict2list(density_region_dict), key=lambda d: d[1], reverse=True)
         # 最大、最小密度
@@ -140,17 +151,32 @@ def sqlQuery(year, province, target_area, cwd):
         Density_min_county_name = density_region_sorted[num_region - 1][0]  # 闪电密度最低的县名
         Density_min_in_region = density_region_sorted[num_region - 1][1]  # 闪电密度最低的县密度
 
-        print('闪电次数最多的县名:', Sum_max_county_name)
-        print('闪电次数最多的县次数:', Sum_max_in_region)
-        print('闪电次数最少的县名:', Sum_min_county_name)
-        print('闪电次数最少的县次数:', Sum_min_in_region)
+        Stats_of_Region = {}#地闪次数、平均地闪密度、最大地闪密度、最小地闪密度、平均雷暴日、最大雷暴日、最小雷暴日
+        for key in sum_region_dict:
+            Stats_of_Region[key] = (sum_region_dict[key], density_region_dict[key],
+                                    stat_density[key[:2]][0],stat_density[key[:2]][1],
+                                    stat_day[key[:2]][0],stat_day[key[:2]][1],stat_day[key[:2]][2])
+        max_density_region = max([stat_density[each][0] for each in stat_density])
+        min_density_region = min([stat_density[each][1] for each in stat_density])
+        Day_target_area = int(sum([stat_day[each][0] for each in stat_day])/num_region)
+        max_day_region = max([stat_day[each][1] for each in stat_day])
+        min_day_region = min([stat_day[each][2] for each in stat_day])
 
-        print('闪电密度最多的县名:', Density_max_county_name)
-        print('闪电密度最多的县密度:', Density_max_in_region)
-        print('闪电密度最少的县名:', Density_min_county_name)
-        print('闪电密度最少的县密度:', Density_min_in_region)
-        print('地闪次数最大县所占比例：', Max_region_percent)
-        print('地闪次数最小县所占比例：', Min_region_percent)
+        Stats_of_Region[u'总计'] = (Sum_target_area,Density_target_area,max_density_region,min_density_region,
+                                  Day_target_area,max_day_region,min_day_region)
+
+        # print('闪电次数最多的县名:', Sum_max_county_name)
+        # print('闪电次数最多的县次数:', Sum_max_in_region)
+        # print('闪电次数最少的县名:', Sum_min_county_name)
+        # print('闪电次数最少的县次数:', Sum_min_in_region)
+        #
+        # print('闪电密度最多的县名:', Density_max_county_name)
+        # print('闪电密度最多的县密度:', Density_max_in_region)
+        # print('闪电密度最少的县名:', Density_min_county_name)
+        # print('闪电密度最少的县密度:', Density_min_in_region)
+        # print('地闪次数最大县所占比例：', Max_region_percent)
+        # print('地闪次数最小县所占比例：', Min_region_percent)
+        # print('分县市统计：', Stats_of_Region)
 
         query_results['Sum_max_county_name'] = Sum_max_county_name
         query_results['Sum_max_in_region'] = Sum_max_in_region
@@ -162,6 +188,7 @@ def sqlQuery(year, province, target_area, cwd):
         query_results['Density_min_in_region'] = Density_min_in_region
         query_results['Max_region_percent'] = Max_region_percent
         query_results['Min_region_percent'] = Min_region_percent
+        query_results['Stats_of_Region'] = Stats_of_Region
 
         # todo SQL查询有待优化
         # ************分月统计 月地闪次数和月平均强度(负闪)**************
@@ -206,6 +233,7 @@ def sqlQuery(year, province, target_area, cwd):
         """.replace('TARGET_AREA', target_area).replace('YEAR', year[0:4]).replace('QUERY_TABLE', data_table)
 
         sheet = workbook.Worksheets(u'分月统计')
+        Stats_of_Month = {}
         i = 1  # 行号
         month = 0
         sum_month_dict = {}  # 记录分月地闪总数
@@ -216,6 +244,7 @@ def sqlQuery(year, province, target_area, cwd):
             sheet.Cells(i, 2).Value = row[0]  # 负闪次数
             sheet.Cells(i, 5).Value = negative_intensity_dict[month] = row[1] if row[1] is not None else 0  # 负闪强度
             sum_month_dict[month] = row[0]
+            Stats_of_Month[month] = [row[0],negative_intensity_dict[month]]
 
         # 负闪强度峰值所在月份
         negative_intensity_sorted = sorted(dict2list(negative_intensity_dict), key=lambda d: d[1], reverse=True)
@@ -271,8 +300,11 @@ def sqlQuery(year, province, target_area, cwd):
             sheet.Cells(i, 3).Value = row[0]  # 正闪次数
             sheet.Cells(i, 6).Value = positive_intensity_dict[month] = row[1] if row[1] is not None else 0  # 正闪强度
             sum_month_dict[month] += row[0]
+            Stats_of_Month[month].append(row[0])
+            Stats_of_Month[month].append(positive_intensity_dict[month])
+            Stats_of_Month[month].append(sum_month_dict[month])
 
-        # 负闪峰值月份
+        # 正闪峰值月份
         positive_intensity_sorted = sorted(dict2list(positive_intensity_dict), key=lambda d: d[1], reverse=True)
         Peak_month_positive_intensity = positive_intensity_sorted[0][0]
 
@@ -283,18 +315,18 @@ def sqlQuery(year, province, target_area, cwd):
         Max_three_months = [sum_month_sorted[0][0], sum_month_sorted[1][0], sum_month_sorted[2][0]]
         Max_three_months.sort()
         # 地闪次数最多三个月所占比例
-        Max_months_percent = 100 * (sum_month_sorted[0][1] + sum_month_sorted[1][1] + sum_month_sorted[2][1]) / float(
-            Sum_target_area)
+        Max_months_percent = round(100 * (sum_month_sorted[0][1] + sum_month_sorted[1][1] + sum_month_sorted[2][1]) / float(
+            Sum_target_area),2)
         # 没有检测到地闪的月份
         Months_zero = [i[0] for i in sum_month_sorted if i[1] == 0]
         Months_zero.sort()
 
-        print('正闪峰值月份:', Peak_month_negative_intensity)
-        print('负闪峰值月份:', Peak_month_positive_intensity)
-        print('地闪次数最多的月份:', Max_month_region)
-        print('地闪次数最多的三个月:', Max_three_months)
-        print('地闪次数最多三个月所占比例:', Max_months_percent)
-        print('没有检测到地闪的月份:', Months_zero)
+        # print('正闪峰值月份:', Peak_month_negative_intensity)
+        # print('负闪峰值月份:', Peak_month_positive_intensity)
+        # print('地闪次数最多的月份:', Max_month_region)
+        # print('地闪次数最多的三个月:', Max_three_months)
+        # print('地闪次数最多三个月所占比例:', Max_months_percent)
+        # print('没有检测到地闪的月份:', Months_zero)
 
         query_results['Peak_month_negative_intensity'] = Peak_month_negative_intensity
         query_results['Peak_month_positive_intensity'] = Peak_month_positive_intensity
@@ -302,6 +334,7 @@ def sqlQuery(year, province, target_area, cwd):
         query_results['Max_three_months'] = Max_three_months
         query_results['Max_months_percent'] = Max_months_percent
         query_results['Months_zero'] = Months_zero
+        query_results['Stats_of_Month'] = Stats_of_Month #负闪次数、负闪强度、正闪次数、正闪强度、总次数
 
         # ****查询雷暴初日********
         sql = """SELECT TOP 1 Date_
@@ -312,7 +345,8 @@ def sqlQuery(year, province, target_area, cwd):
 
         for row in cursor.execute(sql):
             First_date = row[0].strftime('%mM%dD').replace('M', '月').replace('D', '日')
-        print('雷暴初日:', First_date)
+
+        # print('雷暴初日:', First_date)
         query_results['First_date'] = First_date
 
         # ************分时段统计 时段地闪次数和时段平均强度(负闪)**************
@@ -393,11 +427,18 @@ def sqlQuery(year, province, target_area, cwd):
         """.replace('TARGET_AREA', target_area).replace('QUERY_TABLE', data_table)
 
         sheet = workbook.Worksheets(u'分时段统计')
+        sum_hour_dict = {}  # 记录分时段地闪总数
+        Stats_of_Hour = {}
         i = 1  # 行号
         for row in cursor.execute(sql):
             i += 1
+            hour = i-2
             sheet.Cells(i, 2).Value = row[0]  # 负闪次数
-            sheet.Cells(i, 5).Value = row[1] if row[1] is not None else 0  # 负闪强度
+            sheet.Cells(i, 5).Value = negative_intensity_hours = row[1] if row[1] is not None else 0  # 负闪强度
+            sum_hour_dict[hour] = row[0]
+            Stats_of_Hour[hour] = [row[0], negative_intensity_hours]
+
+
 
         # ************分时段统计 时段地闪次数和时段平均强度(正闪)**************
         sql = """
@@ -479,10 +520,17 @@ def sqlQuery(year, province, target_area, cwd):
         i = 1  # 行号
         for row in cursor.execute(sql):
             i += 1
+            hour = i-2
             sheet.Cells(i, 3).Value = row[0]  # 正闪次数
-            sheet.Cells(i, 6).Value = row[1] if row[1] is not None else 0  # 正闪强度
+            sheet.Cells(i, 6).Value = positive_intensity_hours = row[1] if row[1] is not None else 0  # 正闪强度
+            sum_hour_dict[hour] += row[0]
+            Stats_of_Hour[hour].append(row[0])
+            Stats_of_Hour[hour].append(positive_intensity_hours)
+            Stats_of_Hour[hour].append(sum_hour_dict[hour])
 
-            # **********负闪强度分布**************
+        query_results['Stats_of_Hour'] = Stats_of_Hour
+
+        # **********负闪强度分布**************
         sql = """
         SELECT count(*) AS 负闪次数,0 AS 左边界,5 AS 右边界
         FROM QUERY_TABLE
@@ -653,6 +701,11 @@ def sqlQuery(year, province, target_area, cwd):
             i += 1
             sheet.Cells(i, 4).Value = row[0]  # 正闪次数
 
+        f = open(os.path.join(workspath, 'query_results.pkl'), 'wb')
+        pickle.dump(query_results, f, 2)#不能采用最高的协议，否则在python2.7.8中无法加载进来
+        f.close()
+
+
     finally:
         db.close()  # 关闭数据连接
         workbook.Save()  # 保存EXCEL工作薄
@@ -663,14 +716,16 @@ def sqlQuery(year, province, target_area, cwd):
 if __name__ == "__main__":
 
     (year, province, target_area,cwd) = sys.argv[1:]
+    sqlQuery(year, province, target_area,cwd)
 
     # year = u"2015年"
     # province = u'浙江'
     # target_area = u"绍兴市"
-
+    #
+    # cwd = os.getcwd()
     # start = time.clock()
     # # ***********************测试程序*********************************"
-    sqlQuery(year, province, target_area,cwd)
+    # sqlQuery(year, province, target_area, cwd)
     # # ***********************测试程序*********************************"
     # end = time.clock()
     # elapsed = end - start

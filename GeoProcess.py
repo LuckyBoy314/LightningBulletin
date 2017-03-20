@@ -152,12 +152,12 @@ def statsProcess(infeature, output):
     ZonalStatisticsAsTable(infeature, 'NAME', "lightningDensity", 'stat_density', "", "ALL")
     with SearchCursor('stat_density', ["NAME", "MAX", "MIN"]) as cursor:
         for row in cursor:
-            stat_density[row[0][:2]] = (round(row[1] / 100, 2), round(row[2] / 100, 2))
+            stat_density[row[0][:2]] = [round(row[1] / 100, 2), round(row[2] / 100, 2)]
 
     ZonalStatisticsAsTable(infeature, 'NAME', "lightningDay", 'stat_day', "", "ALL")
-    with SearchCursor('stat_day', ["NAME", "MAX", "MIN"]) as cursor:
+    with SearchCursor('stat_day', ["NAME", "MEAN", "MAX", "MIN"]) as cursor:
         for row in cursor:
-            stat_day[row[0][:2]] = (int(round(row[1])), int(round(row[2])))
+            stat_day[row[0][:2]] = (int(round(row[1])), int(round(row[2])), int(round(row[3])))
 
     f = open(os.path.join(output, 'stats.pkl'), 'wb')
     pickle.dump(stat_density, f, pickle.HIGHEST_PROTOCOL)

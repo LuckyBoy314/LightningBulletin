@@ -20,11 +20,11 @@ def docProcess():
         if 0.05<=(sum_region-sum_region_lastyear)/float(sum_region)<0.1:
             compare_with_lastyear = u'略有增多'
         elif -0.1<(sum_region-sum_region_lastyear)/float(sum_region)<=-0.05:
-            compare_with_lastyear = u'略有较少'
+            compare_with_lastyear = u'略有减少'
         elif 0.1<=(sum_region-sum_region_lastyear)/float(sum_region)<0.5:
             compare_with_lastyear = u'有所增多'
         elif -0.5<(sum_region-sum_region_lastyear)/float(sum_region)<=-0.1:
-            compare_with_lastyear = u'有所较少'
+            compare_with_lastyear = u'有所减少'
         elif 0.5<=(sum_region-sum_region_lastyear)/float(sum_region)<0.9:
             compare_with_lastyear = u'增幅较大'
         elif -0.9<(sum_region-sum_region_lastyear)/float(sum_region)<=-0.5:

@@ -12,7 +12,9 @@ import time
 from multiprocessing import Process
 from shutil import move,copy
 from Main import mainProcess
-import  os
+import os
+import cPickle as pickle
+
 
 class WorkerProcess(QtCore.QObject):
     '''
@@ -40,8 +42,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.lastyear = int(time.strftime('%Y', time.localtime(time.time()))) - 1
-        self.in_parameters = {u'datetime': str(self.lastyear) + u'年',
+        self.last_year = int(time.strftime('%Y', time.localtime(time.time()))) - 1
+        self.in_parameters = {u'datetime': str(self.last_year) + u'年',
                               u'province':u'河南',
                               u'target_area': u'新乡市',
                               u'density_cell': u'10',
@@ -71,7 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.year_label.setObjectName("year_label")
         self.horizontalLayout_1.addWidget(self.year_label)
         self.year_DateEdit = QtWidgets.QDateEdit(self.centralwidget)
-        self.year_DateEdit.setDateTime(QtCore.QDateTime(QtCore.QDate(self.lastyear, 1, 1), QtCore.QTime(0, 0, 0)))
+        self.year_DateEdit.setDateTime(QtCore.QDateTime(QtCore.QDate(self.last_year, 1, 1), QtCore.QTime(0, 0, 0)))
         self.year_DateEdit.setObjectName("year_DateEdit")
         self.horizontalLayout_1.addWidget(self.year_DateEdit)
         spacerItem = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -328,7 +330,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
         self.initSizePosition()
-        self.setRegionStatsTable()
+
         self.show()
 
         self.handleEvents()
@@ -416,7 +418,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_data_action.triggered.connect(self.loadData)
         self.execute_action.triggered.connect(self.execute)
         self.exit_action.triggered.connect(self.close)
-
+        self.export_doc_action.triggered.connect(self.exportDoc)
         self.province_comboBox .activated[str].connect(self.updateProvince)
         self.target_area_comboBox.activated[str].connect(self.updateTargetArea)
         self.year_DateEdit .dateChanged.connect(self.updateDatetime)
@@ -427,6 +429,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def showAbout(self):
         self.about = AboutDialog()
+    def exportDoc(self):
+        self.setStatsTable()
 
     def loadData(self):
         fnames = QtWidgets.QFileDialog.getOpenFileNames(self, u'请选择原始的电闪数据',
@@ -444,6 +448,9 @@ class MainWindow(QtWidgets.QMainWindow):
         elif area == u'河南':
             self.target_area_comboBox.addItems(['新乡市', '延津县', '新乡县', '辉县市', '卫辉市', '获嘉县','封丘县'])
             self.in_parameters[u'target_area'] = u'新乡市'
+
+        if self.in_parameters.has_key(u'origin_data_path'):
+            self.in_parameters.__delitem__(u'origin_data_path')
 
     def updateTargetArea(self,area):
         self.in_parameters[u'target_area'] = area
@@ -493,7 +500,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         self.execute_action.setDisabled(True)
-        self.statusbar.showMessage(u'正在制图中……')
+        self.statusbar.showMessage(u'正在执行中……')
         self.progressBar.setMaximum(0)
         self.progressBar.setMinimum(0)
 
@@ -569,6 +576,10 @@ class MainWindow(QtWidgets.QMainWindow):
         scale = float(self.day_view.width()) / pixmap_day.width()
         self.day_view.scale(scale, scale)
 
+
+        #设置分区统计的表格
+        self.setStatsTable()
+
         #处理进度条和执行按钮状态
         self.progressBar.setMinimum(0)
         self.progressBar.setMaximum(100)
@@ -585,7 +596,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.density_class_spinBox.setDisabled(False)
         self.day_cell_spinBox.setDisabled(False)
         self.day_class_spinBox.setDisabled(False)
-
+        self.statusbar.showMessage(u'完成！')
         #self.action_save_pic.setDisabled(False)
 
     def closeEvent(self, event):
@@ -598,29 +609,32 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             event.ignore()
 
-    def setRegionStatsTable(self):
-        self.model_province_stats = QtGui.QStandardItemModel(2,11,self.province_stats_table)
+    def setStatsTable(self):
+        cwd = os.getcwd()
+        workspath = ''.join([cwd, u"/temp/", self.in_parameters['province'],
+                             '/',self.in_parameters[u'datetime'], '/', self.in_parameters[u'target_area'] , '.gdb'])
+        # 读取查询参数
+        f = open(os.path.join(workspath, 'query_results.pkl'), 'rb')
+        query_results = pickle.load(f)
+        f.close()
 
-        # self.model_province_stats.setHeaderData(0, QtCore.Qt.Horizontal, u'杭州')
-        # self.model_province_stats.setHeaderData(1, QtCore.Qt.Horizontal, u'宁波')
-        # self.model_province_stats.setHeaderData(2, QtCore.Qt.Horizontal, u'湖州')
-        # self.model_province_stats.setHeaderData(3, QtCore.Qt.Horizontal, u'嘉兴')
-        # self.model_province_stats.setHeaderData(4, QtCore.Qt.Horizontal, u'绍兴')
-        # self.model_province_stats.setHeaderData(5, QtCore.Qt.Horizontal, u'金华')
-        # self.model_province_stats.setHeaderData(6, QtCore.Qt.Horizontal, u'台州')
-        # self.model_province_stats.setHeaderData(7, QtCore.Qt.Horizontal, u'温州')
-        # self.model_province_stats.setHeaderData(8, QtCore.Qt.Horizontal, u'衢州')
-        # self.model_province_stats.setHeaderData(9, QtCore.Qt.Horizontal, u'丽水')
-        # self.model_province_stats.setHeaderData(10, QtCore.Qt.Horizontal, u'舟山')
-        #
-        # self.model_province_stats.setHeaderData(0, QtCore.Qt.Vertical, u'地闪次数')
-        # self.model_province_stats.setHeaderData(1, QtCore.Qt.Vertical, u'平均密度\n(次/km²)')
+        #******省分区统计******
+        stats_of_province = query_results[u'Stats_of_Province']
+        if self.in_parameters[u'province'] == u'浙江':
+            regions = [u'杭州',u'宁波',u'湖州', u'嘉兴', u'绍兴', u'金华', u'台州', u'温州', u'衢州', u'丽水', u'舟山',u'总计']
+        elif self.in_parameters[u'province'] == u'河南':
+            regions = [u'郑州',u'开封',u'洛阳',u'平顶山',u'安阳',u'鹤壁',u'新乡',u'焦作',u'濮阳',
+                       u'许昌',u'漯河',u'三门峡',u'商丘',u'周口',u'驻马店',u'南阳',u'信阳',u'济源', u'总计']
 
-        self.model_province_stats.setHorizontalHeaderLabels([u'杭州',u'宁波',u'湖州', u'嘉兴', u'绍兴',
-                                                             u'金华', u'台州', u'温州', u'衢州', u'丽水', u'舟山'])
+        n_regions = len(regions)
+        self.model_province_stats = QtGui.QStandardItemModel(2, n_regions, self.province_stats_table)
+        self.model_province_stats.setHorizontalHeaderLabels(regions)
         self.model_province_stats.setVerticalHeaderLabels([u'地闪次数', u'平均密度\n(次/km²)'])
 
-        #self.province_stats_table.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignCenter)
+        for i in range(n_regions):
+            for j in range(2):
+                self.model_province_stats.setItem(j,i, QtGui.QStandardItem(str(stats_of_province[regions[i]][j])))
+                self.model_province_stats.item(j,i).setTextAlignment(QtCore.Qt.AlignCenter)
 
         self.province_stats_table.setModel(self.model_province_stats)
         #表格占满窗口，并可以活动
@@ -630,6 +644,92 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.province_stats_table.resizeColumnsToContents()
         #设置表格内容不可编辑
         self.province_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+
+        #*********分县统计************
+        stats_of_region = query_results[u'Stats_of_Region']
+        if self.in_parameters[u'province'] == u'浙江':
+            counties = [u'越城区', u'柯桥区', u'上虞区', u'诸暨市', u'嵊州市', u'新昌县', u'总计']
+        elif self.in_parameters[u'province'] == u'河南':
+            counties = [u'新乡市', u'新乡县', u'辉县市', u'卫辉市', u'获嘉县', u'原阳县',u'延津县', u'封丘县', u'长垣县']
+
+        n_counties = len(counties)
+        self.model_region_stats = QtGui.QStandardItemModel(2, n_counties, self.region_stats_table)
+        self.model_region_stats.setHorizontalHeaderLabels(counties)
+        self.model_region_stats.setVerticalHeaderLabels([u'地闪次数', u'平均密度\n(次/km²)',u'最大密度\n(次/km²)',
+                                            u'最小密度\n(次/km²)',u'平均雷暴日(天)',u'最多雷暴日(天)',u'最少雷暴日(天)'])
+
+        for i in range(n_counties):
+            for j in range(7):
+                self.model_region_stats.setItem(j,i, QtGui.QStandardItem(str(stats_of_region[counties[i]][j])))
+                self.model_region_stats.item(j,i).setTextAlignment(QtCore.Qt.AlignCenter)
+
+        self.region_stats_table.setModel(self.model_region_stats)
+        #表格占满窗口，并可以活动
+        self.region_stats_table.resizeRowsToContents()
+        self.region_stats_table.horizontalHeader().setStretchLastSection(True)
+        self.region_stats_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        #self.province_stats_table.resizeColumnsToContents()
+        #设置表格内容不可编辑
+        self.region_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+
+        #********分月统计***********
+        stats_of_month = query_results[u'Stats_of_Month']#0负闪次数、1负闪强度、2正闪次数、3正闪强度、4总次数
+        self.model_month_stats = QtGui.QStandardItemModel(12, 5, self.month_stats_table)
+        self.model_month_stats.setHorizontalHeaderLabels([u'负闪次数',u'正闪次数',u'地闪总数',u'负闪平均强度',u'正闪平均强度'])
+        self.model_month_stats.setVerticalHeaderLabels([u'1月', u'2月',u'3月',u'4月',u'5月',u'6月',u'7月',u'8月',u'9月',u'10月',u'11月',u'12月'])
+        for i in range(12):
+            self.model_month_stats.setItem(i,0,QtGui.QStandardItem(str(stats_of_month[i+1][0])))#0负闪次数
+            self.model_month_stats.setItem(i,1,QtGui.QStandardItem(str(stats_of_month[i+1][2])))#2正闪次数
+            self.model_month_stats.setItem(i,2,QtGui.QStandardItem(str(stats_of_month[i+1][4])))#4总次数
+            self.model_month_stats.setItem(i,3,QtGui.QStandardItem('%.2f'%stats_of_month[i+1][1]))#1负闪强度
+            self.model_month_stats.setItem(i,4,QtGui.QStandardItem('%.2f'%stats_of_month[i+1][3]))#3正闪强度
+        for i in range(12):
+            for j in range(5):
+                self.model_month_stats.item(i,j).setTextAlignment(QtCore.Qt.AlignCenter)
+        self.month_stats_table.setModel(self.model_month_stats)
+
+        #表格占满窗口，并可以活动
+        self.month_stats_table.resizeRowsToContents()
+        self.month_stats_table.horizontalHeader().setStretchLastSection(True)
+        self.month_stats_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        #self.province_stats_table.resizeColumnsToContents()
+        #设置表格内容不可编辑
+        self.month_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+
+        #*****分时段统计******
+        stats_of_hour = query_results[u'Stats_of_Hour']#0负闪次数、1负闪强度、2正闪次数、3正闪强度、4总次数
+        self.model_hour_stats = QtGui.QStandardItemModel(12, 5, self.hours_stats_table)
+        self.model_hour_stats.setHorizontalHeaderLabels([u'负闪次数',u'正闪次数',u'地闪总数',u'负闪平均强度',u'正闪平均强度'])
+        self.model_hour_stats.setVerticalHeaderLabels([u'0-1', u'1-2',u'2-3',u'3-4',u'4-5',u'5-6',u'6-7',u'7-8',u'8-9',u'9-10',u'10-11',u'11-12',
+                                                        u'12-13', u'13-14',u'14-15',u'15-16',u'16-17',u'17-18',u'18-19',u'19-20',u'20-21',u'21-22',
+                                                        u'22-23',u'23-24'])
+        for i in range(24):
+            self.model_hour_stats.setItem(i,0,QtGui.QStandardItem(str(stats_of_hour[i][0])))#0负闪次数
+            self.model_hour_stats.setItem(i,1,QtGui.QStandardItem(str(stats_of_hour[i][2])))#2正闪次数
+            self.model_hour_stats.setItem(i,2,QtGui.QStandardItem(str(stats_of_hour[i][4])))#4总次数
+            self.model_hour_stats.setItem(i,3,QtGui.QStandardItem('%.2f'%stats_of_hour[i][1]))#1负闪强度
+            self.model_hour_stats.setItem(i,4,QtGui.QStandardItem('%.2f'%stats_of_hour[i][3]))#3正闪强度
+        for i in range(24):
+            for j in range(5):
+                self.model_hour_stats.item(i,j).setTextAlignment(QtCore.Qt.AlignCenter)
+        self.hours_stats_table.setModel(self.model_hour_stats)
+
+        #表格占满窗口，并可以活动
+        self.hours_stats_table.resizeRowsToContents()
+        self.hours_stats_table.horizontalHeader().setStretchLastSection(True)
+        self.hours_stats_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        #self.province_stats_table.resizeColumnsToContents()
+        #设置表格内容不可编辑
+        self.hours_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+
+    def setExcelStats(self):
+        pass
+        # # 打开Excel应用程序
+        # excel = DispatchEx('Excel.Application')
+        # excel.Visible = False
+        # # 打开文件，即Excel工作薄
+        # workbook = excel.Workbooks.Open(''.join([cwd, u'/data/公报图表模板.xlsx']))
+        # sheet = workbook.Worksheets(u'分月统计')
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):
