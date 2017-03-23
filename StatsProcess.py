@@ -16,6 +16,7 @@ def dict2list(dic: dict):
 
 
 def sqlQuery(year, province, target_area, cwd):
+    local_path = ''.join([cwd, u"/temp/", province, '/', year, '/',target_area,'.gdb'])
     query_results = {}
 
     # 链接数据库
@@ -304,6 +305,9 @@ def sqlQuery(year, province, target_area, cwd):
             Stats_of_Month[month].append(positive_intensity_dict[month])
             Stats_of_Month[month].append(sum_month_dict[month])
 
+        #导出分月统计图
+        sheet.ChartObjects(1).Chart.Export(''.join([local_path,'/','month_stats_pic.png']))
+
         # 正闪峰值月份
         positive_intensity_sorted = sorted(dict2list(positive_intensity_dict), key=lambda d: d[1], reverse=True)
         Peak_month_positive_intensity = positive_intensity_sorted[0][0]
@@ -530,6 +534,9 @@ def sqlQuery(year, province, target_area, cwd):
 
         query_results['Stats_of_Hour'] = Stats_of_Hour
 
+        # 导出分时段统计图
+        sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'hour_stats_pic.png']))
+
         # **********负闪强度分布**************
         sql = """
         SELECT count(*) AS 负闪次数,0 AS 左边界,5 AS 右边界
@@ -700,6 +707,10 @@ def sqlQuery(year, province, target_area, cwd):
         for row in cursor.execute(sql):
             i += 1
             sheet.Cells(i, 4).Value = row[0]  # 正闪次数
+
+        # 导出分强度统计图
+        sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'negative_stats_pic.png']))
+        sheet.ChartObjects(2).Chart.Export(''.join([local_path, '/', 'positive_stats_pic.png']))
 
         f = open(os.path.join(workspath, 'query_results.pkl'), 'wb')
         pickle.dump(query_results, f, 2)#不能采用最高的协议，否则在python2.7.8中无法加载进来

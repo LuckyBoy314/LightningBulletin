@@ -430,7 +430,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def showAbout(self):
         self.about = AboutDialog()
     def exportDoc(self):
-        self.setStatsTable()
+        self.setStatsTables()
+        self.setStatsPics()
 
     def loadData(self):
         fnames = QtWidgets.QFileDialog.getOpenFileNames(self, u'请选择原始的电闪数据',
@@ -529,56 +530,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.worker_process.beginRun(self.in_parameters)
 
     def finished(self):
-        cwd = os.getcwd()
-        #绘制闪电密度图
-        ##清除上一次的QGraphicsView对象，防止其记录上一次图片结果，影响显示效果
-        self.density_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.verticalLayout_2.removeWidget(self.density_view)
-        size = self.density_view.size()
-        self.density_view.close()
-
-        self.density_view = QtWidgets.QGraphicsView(self.density_tab)
-        self.density_view.setObjectName("density_view")
-        self.density_view.resize(size)
-        self.verticalLayout_2.addWidget(self.density_view)
-
-        densityPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],u'/',
-            self.in_parameters[u'datetime'],u'/',self.in_parameters[u'target_area'], u'.gdb/',
-            self.in_parameters[u'datetime'],self.in_parameters[u'target_area'],u'闪电密度空间分布.tif'])
-
-        scene = QtWidgets.QGraphicsScene()
-        pixmap_density = QtGui.QPixmap(densityPic)
-        scene.addPixmap(pixmap_density)
-        self.density_view.setScene(scene)
-        scale = float(self.density_view.width()) / pixmap_density.width()
-        self.density_view.scale(scale, scale)
-
-        #绘制雷暴日图
-        self.day_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.verticalLayout_3.removeWidget(self.day_view)
-        size = self.day_view.size()
-        self.day_view.close()
-
-        self.day_view = QtWidgets.QGraphicsView(self.day_tab)
-        self.day_view.setObjectName("day_view")
-        self.day_view.resize(size)
-        self.verticalLayout_3.addWidget(self.day_view)
-
-        dayPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],u'/',
-            self.in_parameters[u'datetime'], u'/',self.in_parameters[u'target_area'], u'.gdb/',
-            self.in_parameters[u'datetime'],self.in_parameters[u'target_area'],u'地闪雷暴日空间分布.tif'])
-
-        pixmap_day = QtGui.QPixmap(dayPic)
-        scene = QtWidgets.QGraphicsScene()
-        scene.addPixmap(pixmap_day)
-        self.day_view.resize(self.density_view.width(),self.density_view.height())
-        self.day_view.setScene(scene)
-        scale = float(self.day_view.width()) / pixmap_day.width()
-        self.day_view.scale(scale, scale)
-
+        #设置图片显示
+        self.setStatsPics()
 
         #设置分区统计的表格
-        self.setStatsTable()
+        self.setStatsTables()
 
         #处理进度条和执行按钮状态
         self.progressBar.setMinimum(0)
@@ -609,7 +565,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             event.ignore()
 
-    def setStatsTable(self):
+    def setStatsTables(self):
         cwd = os.getcwd()
         workspath = ''.join([cwd, u"/temp/", self.in_parameters['province'],
                              '/',self.in_parameters[u'datetime'], '/', self.in_parameters[u'target_area'] , '.gdb'])
@@ -722,14 +678,140 @@ class MainWindow(QtWidgets.QMainWindow):
         #设置表格内容不可编辑
         self.hours_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
-    def setExcelStats(self):
-        pass
-        # # 打开Excel应用程序
-        # excel = DispatchEx('Excel.Application')
-        # excel.Visible = False
-        # # 打开文件，即Excel工作薄
-        # workbook = excel.Workbooks.Open(''.join([cwd, u'/data/公报图表模板.xlsx']))
-        # sheet = workbook.Worksheets(u'分月统计')
+    def setStatsPics(self):
+        cwd = os.getcwd()
+        # ***********绘制闪电密度图*************
+        #清除上一次的QGraphicsView对象，防止其记录上一次图片结果，影响显示效果
+        self.density_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.verticalLayout_2.removeWidget(self.density_view)
+        size = self.density_view.size()
+        self.density_view.close()
+
+        self.density_view = QtWidgets.QGraphicsView(self.density_tab)
+        self.density_view.setObjectName("density_view")
+        self.density_view.resize(size)
+        self.verticalLayout_2.addWidget(self.density_view)
+
+        densityPic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
+                              self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
+                              self.in_parameters[u'datetime'], self.in_parameters[u'target_area'], u'闪电密度空间分布.tif'])
+
+        scene = QtWidgets.QGraphicsScene()
+        pixmap_density = QtGui.QPixmap(densityPic)
+        scene.addPixmap(pixmap_density)
+        self.density_view.setScene(scene)
+        scale = float(self.density_view.width()) / pixmap_density.width()
+        self.density_view.scale(scale, scale)
+
+        # ***********绘制雷暴日图*************
+        self.day_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.verticalLayout_3.removeWidget(self.day_view)
+        size = self.day_view.size()
+        self.day_view.close()
+
+        self.day_view = QtWidgets.QGraphicsView(self.day_tab)
+        self.day_view.setObjectName("day_view")
+        self.day_view.resize(size)
+        self.verticalLayout_3.addWidget(self.day_view)
+
+        dayPic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
+                          self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
+                          self.in_parameters[u'datetime'], self.in_parameters[u'target_area'], u'地闪雷暴日空间分布.tif'])
+
+        pixmap_day = QtGui.QPixmap(dayPic)
+        scene = QtWidgets.QGraphicsScene()
+        scene.addPixmap(pixmap_day)
+        self.day_view.resize(self.density_view.width(), self.density_view.height())
+        self.day_view.setScene(scene)
+        scale = float(self.day_view.width()) / pixmap_day.width()
+        self.day_view.scale(scale, scale)
+
+        #*****绘制分月统计图******
+        self.month_stats_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.verticalLayout_6.removeWidget(self.month_stats_view)
+        size = self.month_stats_view.size()
+        self.month_stats_view.close()
+
+        self.month_stats_view = QtWidgets.QGraphicsView(self.month_stats_tab)
+        self.month_stats_view.setObjectName("month_stats_view")
+        self.month_stats_view.resize(size)
+        self.verticalLayout_6.addWidget(self.month_stats_view)
+
+        month_stats_pic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
+                                   self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
+                                   u'month_stats_pic.png'])
+
+        pixmap_month_stats = QtGui.QPixmap(month_stats_pic)
+        scene = QtWidgets.QGraphicsScene()
+        scene.addPixmap(pixmap_month_stats)
+        self.month_stats_view.resize(self.month_stats_view.width(), self.month_stats_view.height())
+        self.month_stats_view.setScene(scene)
+        # scale = float(self.month_stats_view.width()) / pixmap_month_stats.width()
+        # self.month_stats_view.scale(scale, scale)
+
+        #******绘制分时段统计图*******
+        self.hour_stats_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.verticalLayout_9.removeWidget(self.hour_stats_view)
+        size = self.hour_stats_view.size()
+        self.hour_stats_view.close()
+
+        self.hour_stats_view = QtWidgets.QGraphicsView(self.hour_stats_tab)
+        self.hour_stats_view.setObjectName("hour_stats_view")
+        self.hour_stats_view.resize(size)
+        self.verticalLayout_9.addWidget(self.hour_stats_view)
+
+        hour_stats_pic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
+                                  self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
+                                  u'hour_stats_pic.png'])
+
+        pixmap_hour_stats = QtGui.QPixmap(hour_stats_pic)
+        scene = QtWidgets.QGraphicsScene()
+        scene.addPixmap(pixmap_hour_stats)
+        self.hour_stats_view.resize(self.hour_stats_view.width(), self.hour_stats_view.height())
+        self.hour_stats_view.setScene(scene)
+
+        #****绘制负闪强度分布图****
+        self.negative_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.verticalLayout_7.removeWidget(self.negative_view)
+        size = self.negative_view.size()
+        self.negative_view.close()
+
+        self.negative_view = QtWidgets.QGraphicsView(self.intensity_stats_tab)
+        self.negative_view.setObjectName("negative_view")
+        self.negative_view.resize(size)
+        self.verticalLayout_7.addWidget(self.negative_view)
+
+        negative_pic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
+                                self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
+                                u'negative_stats_pic.png'])
+
+        pixmap_negative = QtGui.QPixmap(negative_pic)
+        scene = QtWidgets.QGraphicsScene()
+        scene.addPixmap(pixmap_negative)
+        self.negative_view.resize(self.negative_view.width(), self.negative_view.height())
+        self.negative_view.setScene(scene)
+
+        #*****绘制正闪强度分布图*****
+        self.positive_view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.verticalLayout_7.removeWidget(self.positive_view)
+        size = self.positive_view.size()
+        self.positive_view.close()
+
+        self.positive_view = QtWidgets.QGraphicsView(self.intensity_stats_tab)
+        self.positive_view.setObjectName("positive_view")
+        self.positive_view.resize(size)
+        self.verticalLayout_7.addWidget(self.positive_view)
+
+        positive_pic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
+                                self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
+                                u'positive_stats_pic.png'])
+
+        pixmap_positive = QtGui.QPixmap(positive_pic)
+        scene = QtWidgets.QGraphicsScene()
+        scene.addPixmap(pixmap_positive)
+        self.positive_view.resize(self.positive_view.width(), self.positive_view.height())
+        self.positive_view.setScene(scene)
+
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):
