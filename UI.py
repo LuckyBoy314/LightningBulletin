@@ -10,7 +10,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import time
 from multiprocessing import Process
-from shutil import move,copy
+import shutil
 from Main import mainProcess
 import os
 import cPickle as pickle
@@ -404,7 +404,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #根据屏幕大小改变窗口大小
         height_monitor = rect_monitor.height()
         height_main_win = int(height_monitor*0.9)
-        width_main_win = int(height_main_win*0.9)
+        width_main_win = int(height_main_win*1.2)
         self.resize(width_main_win,height_main_win)
         # 当前主窗口的大小和位置，也是QtCore.QRect类型
         qr = self.frameGeometry()
@@ -419,6 +419,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.execute_action.triggered.connect(self.execute)
         self.exit_action.triggered.connect(self.close)
         self.export_doc_action.triggered.connect(self.exportDoc)
+        self.export_charts_action.triggered.connect(self.exportCharts)
         self.province_comboBox .activated[str].connect(self.updateProvince)
         self.target_area_comboBox.activated[str].connect(self.updateTargetArea)
         self.year_DateEdit .dateChanged.connect(self.updateDatetime)
@@ -429,9 +430,44 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def showAbout(self):
         self.about = AboutDialog()
+
     def exportDoc(self):
         self.setStatsTables()
         self.setStatsPics()
+
+    def exportCharts(self):
+        directory = QtWidgets.QFileDialog.getExistingDirectory(self,u'请选择图片保存位置',
+                                                     u'E:/Documents/工作/雷电公报',
+                                    QtWidgets.QFileDialog.ShowDirsOnly|QtWidgets.QFileDialog.DontResolveSymlinks)
+        if not directory:
+            return
+
+        cwd = os.getcwd()
+        densityPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/', self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'闪电密度空间分布.', self.in_parameters[u'out_type']])
+
+        dayPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'地闪雷暴日空间分布.', self.in_parameters[u'out_type']])
+
+        dest_density = os.path.join(directory,os.path.basename(densityPic))
+        dest_day = os.path.join(directory,os.path.basename(dayPic))
+
+        if os.path.isfile(dest_day) or os.path.isfile(dest_density):
+            message = u"文件已经存在！"
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+            return
+
+        shutil.copy2(dayPic,directory)
+        shutil.copy2(densityPic,directory)
 
     def loadData(self):
         fnames = QtWidgets.QFileDialog.getOpenFileNames(self, u'请选择原始的电闪数据',

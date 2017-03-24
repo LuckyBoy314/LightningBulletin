@@ -727,18 +727,18 @@ def sqlQuery(year, province, target_area, cwd):
 
 if __name__ == "__main__":
 
-    # (year, province, target_area,cwd) = sys.argv[1:]
-    # sqlQuery(year, province, target_area,cwd)
+    (year, province, target_area,cwd) = sys.argv[1:]
+    sqlQuery(year, province, target_area,cwd)
 
-    year = u"2015年"
-    province = u'浙江'
-    target_area = u"绍兴市"
-
-    cwd = os.getcwd()
-    start = time.clock()
-    # ***********************测试程序*********************************"
-    sqlQuery(year, province, target_area, cwd)
-    # ***********************测试程序*********************************"
-    end = time.clock()
-    elapsed = end - start
-    print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))
+    # year = u"2015年"
+    # province = u'浙江'
+    # target_area = u"绍兴市"
+    #
+    # cwd = os.getcwd()
+    # start = time.clock()
+    # # ***********************测试程序*********************************"
+    # sqlQuery(year, province, target_area, cwd)
+    # # ***********************测试程序*********************************"
+    # end = time.clock()
+    # elapsed = end - start
+    # print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))
