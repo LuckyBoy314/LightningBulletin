@@ -6,6 +6,7 @@ import time
 from win32com.client import DispatchEx
 import pickle
 import sys
+import shutil
 
 def dict2list(dic: dict):
     ''' 将字典转化为列表 '''
@@ -30,7 +31,14 @@ def sqlQuery(year, province, target_area, cwd):
     excel = DispatchEx('Excel.Application')
     excel.Visible = False
     # 打开文件，即Excel工作薄
-    workbook = excel.Workbooks.Open(''.join([cwd, u'/data/公报图表模板.xlsx']))
+    charts_origin = ''.join([cwd,u'/data/',u'公报图表模板.xlsx'])
+    charts = ''.join([cwd,u'/temp/', province,'/', year, '/', target_area,'.gdb/',
+                      year,target_area,u'公报统计图表.xlsx'])
+
+    if not os.path.exists(charts):
+        shutil.copy2(charts_origin,charts)
+
+    workbook = excel.Workbooks.Open(charts)
 
     # 读取省下属各地级市面积
     workspath = ''.join([cwd, u"/temp/", province, '/', year, '/', 'GDB.gdb'])

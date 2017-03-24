@@ -452,74 +452,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def showAbout(self):
         self.about = AboutDialog()
 
-    def exportDoc(self):
-        pass
+    def closeEvent(self, event):
 
-    def openCharts(self):
-        cwd = os.getcwd()
-        program  = u'C:/Program Files/Microsoft Office/Office15/EXCEL.EXE'
-
-        charts_origin = ''.join([cwd,u'/data/',u'公报图表模板.xlsx'])
-        charts = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
-            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
-            self.in_parameters[u'target_area'],u'公报统计图表.xlsx'])
-        if not os.path.exists(charts):
-            shutil.copy2(charts_origin,charts)
-
-        arguments = [charts]
-        self.process = QtCore.QProcess(self)
-        self.process.start(program,arguments)
-
-    def exportCharts(self):
-        directory = QtWidgets.QFileDialog.getExistingDirectory(self,u'请选择图片保存位置',
-                                                     u'E:/Documents/工作/雷电公报',
-                                    QtWidgets.QFileDialog.ShowDirsOnly|QtWidgets.QFileDialog.DontResolveSymlinks)
-        if not directory:
-            return
-
-        cwd = os.getcwd()
-        densityPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/', self.in_parameters[u'datetime'],u'/',
-            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
-            self.in_parameters[u'target_area'],u'闪电密度空间分布.', self.in_parameters[u'out_type']])
-
-        dayPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
-            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
-            self.in_parameters[u'target_area'],u'地闪雷暴日空间分布.', self.in_parameters[u'out_type']])
-
-        charts_origin = ''.join([cwd,u'/data/',u'公报图表模板.xlsx'])
-        charts = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
-            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
-            self.in_parameters[u'target_area'],u'公报统计图表.xlsx'])
-
-        if not os.path.exists(charts):
-            shutil.copy2(charts_origin,charts)
-
-        dest_density = os.path.join(directory,os.path.basename(densityPic))
-        dest_day = os.path.join(directory,os.path.basename(dayPic))
-        dest_charts = os.path.join(directory,os.path.basename(charts))
-
-        if os.path.isfile(dest_day) or os.path.isfile(dest_density) or os.path.isfile(dest_charts):
-            message = u"文件已经存在！"
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setText(message)
-            msgBox.setIcon(QtWidgets.QMessageBox.Information)
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-            msgBox.setWindowIcon(icon)
-            msgBox.setWindowTitle(" ")
-            msgBox.exec_()
-            return
-
-        shutil.copy2(dayPic, directory)
-        shutil.copy2(densityPic, directory)
-        shutil.copy2(charts, directory)
-
-    def loadData(self):
-        fnames = QtWidgets.QFileDialog.getOpenFileNames(self, u'请选择原始的电闪数据',
-                                              u'Z:/ZHUF/数据/闪电数据',
-                                              'Text files (*.txt);;All(*.*)')
-
-        self.in_parameters[u'origin_data_path'] = fnames[0]
+        reply = QtWidgets.QMessageBox.question(self, u'退出',u'真的要退出程序吗？',
+                                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                               QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
     def updateProvince(self,area):
         self.in_parameters[u'province'] = area
@@ -554,8 +495,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def updateDayClass(self, nclass):
         self.in_parameters[u'day_class'] = nclass
 
+    def loadData(self):
+        fnames = QtWidgets.QFileDialog.getOpenFileNames(self, u'请选择原始的电闪数据',
+                                              u'Z:/ZHUF/数据/闪电数据',
+                                              'Text files (*.txt);;All(*.*)')
+
+        self.in_parameters[u'origin_data_path'] = fnames[0]
+
     def execute(self):
-        reply = QtWidgets.QMessageBox.question(self, u'确定', u'确定是制作%s的%s公报吗？'%(
+        reply = QtWidgets.QMessageBox.question(self, u'确定', u'确定是制作%s的%s公报吗？\n注意输入条件与加载的原始数据一致'%(
                                                 self.in_parameters[u'datetime'],self.in_parameters[u'target_area']),
                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                QtWidgets.QMessageBox.No)
@@ -646,16 +594,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.day_class_spinBox.setDisabled(False)
         self.statusbar.showMessage(u'完成！')
         #self.action_save_pic.setDisabled(False)
-
-    def closeEvent(self, event):
-
-        reply = QtWidgets.QMessageBox.question(self, u'退出',u'真的要退出程序吗？',
-                                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                               QtWidgets.QMessageBox.No)
-        if reply == QtWidgets.QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
 
     def setStatsTables(self):
         cwd = os.getcwd()
@@ -937,7 +875,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.setStatsTables()
             self.setStatsPics()
         except Exception,e:
-            message = u"%s%s公报图表还没有制作！"%(self.in_parameters[u'datetime'],self.in_parameters[u'target_area'])
+            message = u"%s%s雷电公报图表还没有制作！"%(self.in_parameters[u'datetime'],self.in_parameters[u'target_area'])
             msgBox = QtWidgets.QMessageBox()
             msgBox.setText(message)
             msgBox.setIcon(QtWidgets.QMessageBox.Information)
@@ -947,7 +885,85 @@ class MainWindow(QtWidgets.QMainWindow):
             msgBox.setWindowTitle(" ")
             msgBox.exec_()
 
+    def openCharts(self):
+        cwd = os.getcwd()
 
+        charts = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'公报统计图表.xlsx'])
+
+        if not os.path.exists(charts):
+            message = u"%s%s雷电公报图表还没有制作！"%(self.in_parameters[u'datetime'],self.in_parameters[u'target_area'])
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+            return
+
+        program  = u'C:/Program Files/Microsoft Office/Office15/EXCEL.EXE'
+        arguments = [charts]
+        self.process = QtCore.QProcess(self)
+        self.process.start(program,arguments)
+
+    def exportCharts(self):
+        cwd = os.getcwd()
+        densityPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/', self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'闪电密度空间分布.', self.in_parameters[u'out_type']])
+
+        dayPic = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'地闪雷暴日空间分布.', self.in_parameters[u'out_type']])
+
+        charts = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'公报统计图表.xlsx'])
+
+        if not os.path.exists(densityPic) or not os.path.exists(dayPic) or not os.path.exists(charts):
+            message = u"%s%s雷电公报图表还没有制作！"%(self.in_parameters[u'datetime'],self.in_parameters[u'target_area'])
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+            return
+
+
+        directory = QtWidgets.QFileDialog.getExistingDirectory(self,u'请选择图表保存位置',
+                                                     u'E:/Documents/工作/雷电公报',
+                                    QtWidgets.QFileDialog.ShowDirsOnly|QtWidgets.QFileDialog.DontResolveSymlinks)
+        if not directory:
+            return
+
+        dest_density = os.path.join(directory,os.path.basename(densityPic))
+        dest_day = os.path.join(directory,os.path.basename(dayPic))
+        dest_charts = os.path.join(directory,os.path.basename(charts))
+
+        if os.path.isfile(dest_day) or os.path.isfile(dest_density) or os.path.isfile(dest_charts):
+            message = u"文件已经存在！"
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+            return
+
+        shutil.copy2(dayPic, directory)
+        shutil.copy2(densityPic, directory)
+        shutil.copy2(charts, directory)
+
+    def exportDoc(self):
+        pass
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):
