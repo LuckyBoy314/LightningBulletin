@@ -76,7 +76,7 @@ def densityLegendLabel(min, max, intervals=None):
     return L, intervals
 
 
-def mappingProcess(datetime, province, target_area, density_class=None, day_class=10, out_path=None, out_type="TIFF"):
+def mappingProcess(datetime, province, target_area, density_class=None, day_class=10, out_path=None, out_type= "png"):
     # todo.控制densityClass和dayClass最多为14
     cwd = os.getcwd()
     infeature = ''.join([cwd, u"/data/LightningBulletin.gdb/", target_area])

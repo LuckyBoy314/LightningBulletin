@@ -35,7 +35,7 @@ def dialogOpenFile():
 
 def mainProcess(datetime, province,target_area, origin_data_path,
                 density_cell = '10', day_cell = '15',density_class = None, day_class = 10,
-                out_type = 'TIFF', out_path=None):
+                out_type = 'png', out_path=None):
 
     cwd = os.getcwd() #注意cwd在程序执行过程中会变化
 

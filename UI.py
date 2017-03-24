@@ -50,7 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
                               u'density_class': 10,
                               u'day_cell': u'15',
                               u'day_class': 10,
-                              u'out_type': u'tiff'}
+                              u'out_type': u'png'}
         self.setupUi()
 
     def setupUi(self):
@@ -678,6 +678,34 @@ class MainWindow(QtWidgets.QMainWindow):
         #设置表格内容不可编辑
         self.hours_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
+        #*****分强度统计*******
+        stats_of_intensity = query_results[u'Stats_of_Intensity']
+        self.model_intensity_stats = QtGui.QStandardItemModel(12, 5, self.hours_stats_table)
+        self.model_intensity_stats.setHorizontalHeaderLabels([u'负闪次数',u'正闪次数',u'地闪总数',u'负闪累计比例',u'正闪累计比例'])
+        self.model_intensity_stats.setVerticalHeaderLabels([u'0-5', u'5-10', u'10-15', u'15-20',u'20-25',u'25-30',u'30-35',u'35-40',u'40-45',u'45-50',u'50-55',
+                                                            u'55-60', u'60-65', u'65-70', u'70-75', u'75-80', u'80-85', u'85-90',u'90-95',u'95-100',
+                                                            u'100-150',u'150-200',u'200-250',u'250-300',u'300-1000'])
+
+        for i in range(25):
+            self.model_intensity_stats.setItem(i,0,QtGui.QStandardItem(str(stats_of_intensity[i][0])))#0负闪次数
+            self.model_intensity_stats.setItem(i,1,QtGui.QStandardItem(str(stats_of_intensity[i][1])))#1正闪次数
+            self.model_intensity_stats.setItem(i,2,QtGui.QStandardItem(str(stats_of_intensity[i][0]+stats_of_intensity[i][1])))#4总次数
+            self.model_intensity_stats.setItem(i,3,QtGui.QStandardItem('%.2f%%'%(100*stats_of_intensity[i][2])))#负闪累计比例
+            self.model_intensity_stats.setItem(i,4,QtGui.QStandardItem('%.2f%%'%(100*stats_of_intensity[i][3])))#正闪累计比例
+
+        for i in range(25):
+            for j in range(5):
+                self.model_intensity_stats.item(i,j).setTextAlignment(QtCore.Qt.AlignCenter)
+                self.intensity_stats_table.setModel(self.model_intensity_stats)
+
+        #表格占满窗口，并可以活动
+        self.intensity_stats_table.resizeRowsToContents()
+        self.intensity_stats_table.horizontalHeader().setStretchLastSection(True)
+        self.intensity_stats_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        #self.province_stats_table.resizeColumnsToContents()
+        #设置表格内容不可编辑
+        self.intensity_stats_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+
     def setStatsPics(self):
         cwd = os.getcwd()
         # ***********绘制闪电密度图*************
@@ -694,7 +722,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         densityPic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
                               self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
-                              self.in_parameters[u'datetime'], self.in_parameters[u'target_area'], u'闪电密度空间分布.tif'])
+                              self.in_parameters[u'datetime'], self.in_parameters[u'target_area'], u'闪电密度空间分布.',self.in_parameters[u'out_type']])
 
         scene = QtWidgets.QGraphicsScene()
         pixmap_density = QtGui.QPixmap(densityPic)
@@ -716,7 +744,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         dayPic = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], u'/',
                           self.in_parameters[u'datetime'], u'/', self.in_parameters[u'target_area'], u'.gdb/',
-                          self.in_parameters[u'datetime'], self.in_parameters[u'target_area'], u'地闪雷暴日空间分布.tif'])
+                          self.in_parameters[u'datetime'], self.in_parameters[u'target_area'], u'地闪雷暴日空间分布.',self.in_parameters[u'out_type']])
 
         pixmap_day = QtGui.QPixmap(dayPic)
         scene = QtWidgets.QGraphicsScene()
