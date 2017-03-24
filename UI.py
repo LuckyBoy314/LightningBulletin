@@ -299,6 +299,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.open_charts_action.setObjectName("open_charts_action")
         self.exit_action = QtWidgets.QAction(self)
         self.exit_action.setObjectName("exit_action")
+
+        self.load_result_action = QtWidgets.QAction(self)
+        icon7 = QtGui.QIcon()
+        icon7.addPixmap(QtGui.QPixmap("resource/load_results.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.load_result_action.setIcon(icon7)
+        self.load_result_action.setObjectName("load_result_action")
+
         self.file_menu.addAction(self.open_doc_action)
         self.file_menu.addAction(self.open_charts_action)
         self.file_menu.addSeparator()
@@ -310,6 +317,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.help_menu.addAction(self.about_action)
         self.action_menu.addAction(self.load_data_action)
         self.action_menu.addAction(self.execute_action)
+        self.action_menu.addAction(self.load_result_action)
         self.menubar.addAction(self.file_menu.menuAction())
         self.menubar.addAction(self.action_menu.menuAction())
         self.menubar.addAction(self.help_menu.menuAction())
@@ -321,6 +329,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.export_doc_action)
         self.toolBar.addAction(self.export_charts_action)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.load_result_action)
+
+
         self.year_label.setBuddy(self.year_DateEdit)
         self.province_label.setBuddy(self.province_comboBox)
         self.target_area_label.setBuddy(self.target_area_comboBox)
@@ -395,6 +407,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.open_charts_action.setToolTip(_translate("MainWindow", "打开公报统计图表"))
         self.open_charts_action.setStatusTip(_translate("MainWindow", "打开公报统计图表"))
         self.open_charts_action.setShortcut(_translate("MainWindow", "Ctrl+C"))
+
+        self.load_result_action.setText(_translate("MainWindow", "载入结果显示"))
+        self.load_result_action.setToolTip(_translate("MainWindow", "载入并显示公报图表结果"))
+        self.load_result_action.setStatusTip(_translate("MainWindow", "载入并显示公报图表结果"))
+        self.load_result_action.setShortcut(_translate("MainWindow", "F11"))
+
         self.exit_action.setText(_translate("MainWindow", "退出"))
         self.exit_action.setShortcut(_translate("MainWindow", "F4"))
 
@@ -420,6 +438,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.exit_action.triggered.connect(self.close)
         self.export_doc_action.triggered.connect(self.exportDoc)
         self.export_charts_action.triggered.connect(self.exportCharts)
+        self.open_charts_action.triggered.connect(self.openCharts)
+        self.load_result_action.triggered.connect(self.loadResults)
+
         self.province_comboBox .activated[str].connect(self.updateProvince)
         self.target_area_comboBox.activated[str].connect(self.updateTargetArea)
         self.year_DateEdit .dateChanged.connect(self.updateDatetime)
@@ -432,8 +453,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.about = AboutDialog()
 
     def exportDoc(self):
-        self.setStatsTables()
-        self.setStatsPics()
+        pass
+
+    def openCharts(self):
+        cwd = os.getcwd()
+        program  = u'C:/Program Files/Microsoft Office/Office15/EXCEL.EXE'
+
+        charts_origin = ''.join([cwd,u'/data/',u'公报图表模板.xlsx'])
+        charts = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'公报统计图表.xlsx'])
+        if not os.path.exists(charts):
+            shutil.copy2(charts_origin,charts)
+
+        arguments = [charts]
+        self.process = QtCore.QProcess(self)
+        self.process.start(program,arguments)
 
     def exportCharts(self):
         directory = QtWidgets.QFileDialog.getExistingDirectory(self,u'请选择图片保存位置',
@@ -451,10 +486,19 @@ class MainWindow(QtWidgets.QMainWindow):
             self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
             self.in_parameters[u'target_area'],u'地闪雷暴日空间分布.', self.in_parameters[u'out_type']])
 
+        charts_origin = ''.join([cwd,u'/data/',u'公报图表模板.xlsx'])
+        charts = ''.join([cwd,u'/temp/',self.in_parameters[u'province'],'/',self.in_parameters[u'datetime'],u'/',
+            self.in_parameters[u'target_area'],'.gdb',u'/',self.in_parameters[u'datetime'],
+            self.in_parameters[u'target_area'],u'公报统计图表.xlsx'])
+
+        if not os.path.exists(charts):
+            shutil.copy2(charts_origin,charts)
+
         dest_density = os.path.join(directory,os.path.basename(densityPic))
         dest_day = os.path.join(directory,os.path.basename(dayPic))
+        dest_charts = os.path.join(directory,os.path.basename(charts))
 
-        if os.path.isfile(dest_day) or os.path.isfile(dest_density):
+        if os.path.isfile(dest_day) or os.path.isfile(dest_density) or os.path.isfile(dest_charts):
             message = u"文件已经存在！"
             msgBox = QtWidgets.QMessageBox()
             msgBox.setText(message)
@@ -466,8 +510,9 @@ class MainWindow(QtWidgets.QMainWindow):
             msgBox.exec_()
             return
 
-        shutil.copy2(dayPic,directory)
-        shutil.copy2(densityPic,directory)
+        shutil.copy2(dayPic, directory)
+        shutil.copy2(densityPic, directory)
+        shutil.copy2(charts, directory)
 
     def loadData(self):
         fnames = QtWidgets.QFileDialog.getOpenFileNames(self, u'请选择原始的电闪数据',
@@ -548,6 +593,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.export_doc_action.setDisabled(True)
         self.open_charts_action.setDisabled(True)
         self.open_doc_action.setDisabled(True)
+        self.load_result_action.setDisabled(True)
         self.province_comboBox.setDisabled(True)
         self.target_area_comboBox.setDisabled(True)
         self.year_DateEdit.setDisabled(True)
@@ -590,6 +636,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.export_doc_action.setDisabled(False)
         self.open_charts_action.setDisabled(False)
         self.open_doc_action.setDisabled(False)
+        self.load_result_action.setDisabled(False)
         self.province_comboBox.setDisabled(False)
         self.target_area_comboBox.setDisabled(False)
         self.year_DateEdit.setDisabled(False)
@@ -884,6 +931,22 @@ class MainWindow(QtWidgets.QMainWindow):
         scene.addPixmap(pixmap_positive)
         self.positive_view.resize(self.positive_view.width(), self.positive_view.height())
         self.positive_view.setScene(scene)
+
+    def loadResults(self):
+        try:
+            self.setStatsTables()
+            self.setStatsPics()
+        except Exception,e:
+            message = u"%s%s公报图表还没有制作！"%(self.in_parameters[u'datetime'],self.in_parameters[u'target_area'])
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+
 
 
 class AboutDialog(QtWidgets.QDialog):
