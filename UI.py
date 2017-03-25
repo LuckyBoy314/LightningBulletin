@@ -503,7 +503,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.in_parameters[u'origin_data_path'] = fnames[0]
 
     def execute(self):
-        reply = QtWidgets.QMessageBox.question(self, u'确定', u'确定是制作%s的%s公报吗？\n注意输入条件与加载的原始数据一致'%(
+        reply = QtWidgets.QMessageBox.question(self, u'注意', u'确定是制作%s的%s公报吗？\n注意输入条件与加载的原始数据一致'%(
                                                 self.in_parameters[u'datetime'],self.in_parameters[u'target_area']),
                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                QtWidgets.QMessageBox.No)
@@ -636,7 +636,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.in_parameters[u'province'] == u'浙江':
             counties = [u'越城区', u'柯桥区', u'上虞区', u'诸暨市', u'嵊州市', u'新昌县', u'总计']
         elif self.in_parameters[u'province'] == u'河南':
-            counties = [u'新乡市', u'新乡县', u'辉县市', u'卫辉市', u'获嘉县', u'原阳县',u'延津县', u'封丘县', u'长垣县']
+            counties = [u'市区', u'新乡县', u'辉县市', u'卫辉市', u'获嘉县', u'原阳县',u'延津县', u'封丘县', u'长垣县', u'总计']
 
         n_counties = len(counties)
         self.model_region_stats = QtGui.QStandardItemModel(2, n_counties, self.region_stats_table)

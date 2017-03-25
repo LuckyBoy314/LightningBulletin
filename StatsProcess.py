@@ -81,6 +81,7 @@ def sqlQuery(year, province, target_area, cwd):
         Sum_target_area = sum_province_dict[target_area]  # 本地区地闪总数
         Density_target_area = round(Sum_target_area / province_area[target_area],2) # 本地区地闪密度
 
+
         # 计算全省各地区地闪密度和全省平均密度
         density_province_dict = {}  # 全省各地区密度
         Density_province = 0
@@ -104,7 +105,7 @@ def sqlQuery(year, province, target_area, cwd):
         sum_of_province = 0
         for key in sum_province_dict:
             sum_of_province += sum_province_dict[key]
-            Stats_of_Province[key[:2]] = (sum_province_dict[key], density_province_dict[key])
+            Stats_of_Province[key[:-1]] = (sum_province_dict[key], density_province_dict[key])
         Stats_of_Province[u'总计'] = (sum_of_province, Density_province)
 
         query_results['Sum_target_area'] = Sum_target_area # 本地区地闪总数
@@ -143,6 +144,7 @@ def sqlQuery(year, province, target_area, cwd):
 
         # 计算本地区各县市地闪密度
         density_region_dict = {}
+
         for key in sum_region_dict:
             density_region_dict[key] = round(sum_region_dict[key] / region_area[key],2)
         # 密度从大到小进行排序
@@ -156,8 +158,8 @@ def sqlQuery(year, province, target_area, cwd):
         Stats_of_Region = {}#地闪次数、平均地闪密度、最大地闪密度、最小地闪密度、平均雷暴日、最大雷暴日、最小雷暴日
         for key in sum_region_dict:
             Stats_of_Region[key] = (sum_region_dict[key], density_region_dict[key],
-                                    stat_density[key[:2]][0],stat_density[key[:2]][1],
-                                    stat_day[key[:2]][0],stat_day[key[:2]][1],stat_day[key[:2]][2])
+                                    stat_density[key[:-1]][0],stat_density[key[:-1]][1],
+                                    stat_day[key[:-1]][0],stat_day[key[:-1]][1],stat_day[key[:-1]][2])
         max_density_region = max([stat_density[each][0] for each in stat_density])
         min_density_region = min([stat_density[each][1] for each in stat_density])
         Day_target_area = int(sum([stat_day[each][0] for each in stat_day])/num_region)
@@ -187,7 +189,7 @@ def sqlQuery(year, province, target_area, cwd):
         elif province == u'河南':
             regions = [u'郑州',u'开封',u'洛阳',u'平顶山',u'安阳',u'鹤壁',u'新乡',u'焦作',u'濮阳',
                        u'许昌',u'漯河',u'三门峡',u'商丘',u'周口',u'驻马店',u'南阳',u'信阳',u'济源', u'总计']
-            counties = [u'新乡市', u'新乡县', u'辉县市', u'卫辉市', u'获嘉县', u'原阳县',u'延津县', u'封丘县', u'长垣县']
+            counties = [u'市区', u'新乡县', u'辉县市', u'卫辉市', u'获嘉县', u'原阳县',u'延津县', u'封丘县', u'长垣县', u'总计']
 
         n_regions = len(regions)
         for i in range(n_regions):
@@ -738,9 +740,9 @@ if __name__ == "__main__":
     (year, province, target_area,cwd) = sys.argv[1:]
     sqlQuery(year, province, target_area,cwd)
 
-    # year = u"2015年"
-    # province = u'浙江'
-    # target_area = u"绍兴市"
+    # year = u"2016年"
+    # province = u'河南'
+    # target_area = u"新乡市"
     #
     # cwd = os.getcwd()
     # start = time.clock()
