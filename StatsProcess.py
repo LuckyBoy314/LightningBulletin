@@ -35,8 +35,7 @@ def sqlQuery(year, province, target_area, cwd):
     charts = ''.join([cwd,u'/temp/', province,'/', year, '/', target_area,'.gdb/',
                       year,target_area,u'公报统计图表.xlsx'])
 
-    if not os.path.exists(charts):
-        shutil.copy2(charts_origin,charts)
+    shutil.copy2(charts_origin,charts)
 
     workbook = excel.Workbooks.Open(charts)
 
@@ -317,6 +316,9 @@ def sqlQuery(year, province, target_area, cwd):
             Stats_of_Month[month].append(positive_intensity_dict[month])
             Stats_of_Month[month].append(sum_month_dict[month])
 
+        #修改标题
+        title = sheet.ChartObjects(1).Chart.ChartTitle.Text
+        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015年', year).replace(u'绍兴市', target_area)
         #导出分月统计图
         sheet.ChartObjects(1).Chart.Export(''.join([local_path,'/','month_stats_pic.png']))
 
@@ -355,8 +357,7 @@ def sqlQuery(year, province, target_area, cwd):
         for row in cursor.execute(sql):
             First_date = row[0].strftime('%mM%dD').replace('M', '月').replace('D', '日')
 
-        # 雷暴初日:', First_date)
-        query_results['First_date'] = First_date
+        query_results['First_date'] = First_date # 雷暴初日
 
         # ************分时段统计 时段地闪次数和时段平均强度(负闪)**************
         sql = """
@@ -537,6 +538,9 @@ def sqlQuery(year, province, target_area, cwd):
 
         query_results['Stats_of_Hour'] = Stats_of_Hour
 
+        #修改标题
+        title = sheet.ChartObjects(1).Chart.ChartTitle.Text
+        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015年', year).replace(u'绍兴市', target_area)
         # 导出分时段统计图
         sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'hour_stats_pic.png']))
 
@@ -719,6 +723,11 @@ def sqlQuery(year, province, target_area, cwd):
             Stats_of_Intensity[i].append(sheet.Cells(i+2,7).Value)
 
         query_results['Stats_of_Intensity'] = Stats_of_Intensity
+        #修改标题
+        title = sheet.ChartObjects(1).Chart.ChartTitle.Text
+        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015年', year).replace(u'绍兴市', target_area)
+        title = sheet.ChartObjects(2).Chart.ChartTitle.Text
+        sheet.ChartObjects(2).Chart.ChartTitle.Text = title.replace(u'2015年', year).replace(u'绍兴市', target_area)
         # 导出分强度统计图
         sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'negative_stats_pic.png']))
         sheet.ChartObjects(2).Chart.Export(''.join([local_path, '/', 'positive_stats_pic.png']))
