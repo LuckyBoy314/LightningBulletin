@@ -436,6 +436,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_data_action.triggered.connect(self.loadData)
         self.execute_action.triggered.connect(self.execute)
         self.exit_action.triggered.connect(self.close)
+        self.open_doc_action.triggered.connect(self.openDoc)
         self.export_doc_action.triggered.connect(self.exportDoc)
         self.export_charts_action.triggered.connect(self.exportCharts)
         self.open_charts_action.triggered.connect(self.openCharts)
@@ -533,7 +534,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusbar.showMessage(u'正在执行中……')
         self.progressBar.setMaximum(0)
         self.progressBar.setMinimum(0)
-        self.progressBar.setFormat(u'执行中……')
 
         self.load_data_action.setDisabled(True)
         self.execute_action.setDisabled(True)
@@ -962,8 +962,71 @@ class MainWindow(QtWidgets.QMainWindow):
         shutil.copy2(densityPic, directory)
         shutil.copy2(charts, directory)
 
+    def openDoc(self):
+        cwd = os.getcwd()
+
+        doc = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], '/', self.in_parameters[u'datetime'], u'/',
+                          self.in_parameters[u'target_area'], '.gdb', u'/', self.in_parameters[u'datetime'],
+                          self.in_parameters[u'target_area'], u'公报文档.docx'])
+
+        if not os.path.exists(doc):
+            message = u"%s%s雷电公报文档还没有制作！" % (self.in_parameters[u'datetime'], self.in_parameters[u'target_area'])
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+            return
+
+        program = u'C:/Program Files/Microsoft Office/Office15/EXCEL.EXE'
+        arguments = [doc]
+        self.process = QtCore.QProcess(self)
+        self.process.start(program, arguments)
+
     def exportDoc(self):
-        pass
+        cwd = os.getcwd()
+
+        doc = ''.join([cwd, u'/temp/', self.in_parameters[u'province'], '/', self.in_parameters[u'datetime'], u'/',
+                          self.in_parameters[u'target_area'], '.gdb', u'/', self.in_parameters[u'datetime'],
+                          self.in_parameters[u'target_area'], u'公报文档.docx'])
+
+        if  not os.path.exists(doc):
+            message = u"%s%s雷电公报文档还没有制作！" % (self.in_parameters[u'datetime'], self.in_parameters[u'target_area'])
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+            return
+
+        directory = QtWidgets.QFileDialog.getExistingDirectory(self, u'请选择图表保存位置',
+                                                               u'E:/Documents/工作/雷电公报',
+                                                               QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks)
+        if not directory:
+            return
+
+        dest_doc = os.path.join(directory, os.path.basename(doc))
+
+        if  os.path.isfile(dest_doc):
+            message = u"文件已经存在！"
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(message)
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap("./resource/weather-thunder.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            msgBox.setWindowIcon(icon)
+            msgBox.setWindowTitle(" ")
+            msgBox.exec_()
+            return
+
+        shutil.copy2(doc, directory)
+
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):

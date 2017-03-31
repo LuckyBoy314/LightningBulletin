@@ -21,38 +21,6 @@ def docProcess(year, province, target_area, cwd):
 
     doc = word.Documents.Open(doc)
 
-    # ******页眉页脚处理*******
-    # 设置首页、奇偶页的页眉页脚全部一样
-    doc.PageSetup.DifferentFirstPageHeaderFooter = False
-    doc.PageSetup.OddAndEvenPagesHeaderFooter = False
-    # 整体替换页眉
-    header = doc.Sections(2).Headers(1).Range
-    header.Find.ClearFormatting()
-    header.Find.Replacement.ClearFormatting()
-    header.Find.Execute(u'2015年', False, False, False, False, False, True, 1, False, year, 2)
-    header.Find.Execute(u'绍兴市', False, False, False, False, False, True, 1, False, target_area, 2)
-    # 整体替换页脚
-    footer = doc.Sections(2).Footers(1).Range
-    footer.Find.ClearFormatting()
-    footer.Find.Replacement.ClearFormatting()
-    footer.Find.Execute(u'2015年', False, False, False, False, False, True, 1, False, year, 2)
-    footer.Find.Execute(u'绍兴市', False, False, False, False, False, True, 1, False, target_area, 2)
-
-    # ******替换图片*********
-    word.Selection.Find.Execute(FindText=u'图1-1 地闪密度空间分布图', Wrap=1)
-    word.Selection.MoveLeft(Count = 3)
-    doc.InlineShapes(2).Delete()
-    densityPic = ''.join([cwd, u'/temp/', province, u'/',year, u'/', target_area, u'.gdb/',
-                        year, target_area, u'闪电密度空间分布.png'])
-    word.Selection.InlineShapes.AddPicture(densityPic)
-
-    word.Selection.Find.Execute(FindText=u'图1-2 地闪雷暴日空间分布图', Wrap=1)
-    word.Selection.MoveLeft(Count = 3)
-    doc.InlineShapes(3).Delete()
-    dayPic = ''.join([cwd, u'/temp/', province, u'/',year, u'/', target_area, u'.gdb/',
-                        year, target_area, u'地闪雷暴日空间分布.png'])
-    word.Selection.InlineShapes.AddPicture(dayPic)
-
     # 读取统计参数
     query_results_path = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb/', 'query_results.pkl'])
     # 读取查询参数
@@ -66,7 +34,9 @@ def docProcess(year, province, target_area, cwd):
     density_target_area = query_results['Density_target_area']  # 本地区密度
     density_rank_in_province = query_results['Density_rank_in_province']  # 本地区密度在全省排名
     stats_of_Region = query_results['Stats_of_Region']  # 分县市统计
-    day_target_area = stats_of_Region[u'总计'][4]
+    day_target_area = stats_of_Region[u'总计'][4] #平均雷暴日
+    day_max_target = stats_of_Region[u'总计'][5] #最大雷暴日
+    day_min_target = stats_of_Region[u'总计'][6] #最小雷暴日
 
     sum_max_county_name = query_results['Sum_max_county_name']  # 闪电次数最多的县名
     sum_max_in_region = query_results['Sum_max_in_region']  # 闪电次数最多的县次数
@@ -89,6 +59,39 @@ def docProcess(year, province, target_area, cwd):
     first_date = query_results['First_date']  # 雷暴初日
 
     try:
+        # ******页眉页脚处理*******
+        # 设置首页、奇偶页的页眉页脚全部一样
+        doc.PageSetup.DifferentFirstPageHeaderFooter = False
+        doc.PageSetup.OddAndEvenPagesHeaderFooter = False
+        # 整体替换页眉
+        header = doc.Sections(2).Headers(1).Range
+        header.Find.ClearFormatting()
+        header.Find.Replacement.ClearFormatting()
+        header.Find.Execute(u'2015年', False, False, False, False, False, True, 1, False, year, 2)
+        header.Find.Execute(u'绍兴市', False, False, False, False, False, True, 1, False, target_area, 2)
+        # 整体替换页脚
+        footer = doc.Sections(2).Footers(1).Range
+        footer.Find.ClearFormatting()
+        footer.Find.Replacement.ClearFormatting()
+        footer.Find.Execute(u'2015年', False, False, False, False, False, True, 1, False, year, 2)
+        footer.Find.Execute(u'绍兴市', False, False, False, False, False, True, 1, False, target_area, 2)
+
+        # ******替换图片*********
+        word.Selection.Find.Execute(FindText=u'图1-1 地闪密度空间分布图', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        doc.InlineShapes(2).Delete()
+        densityPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
+                              year, target_area, u'闪电密度空间分布.png'])
+        word.Selection.InlineShapes.AddPicture(densityPic)
+
+        word.Selection.Find.Execute(FindText=u'图1-2 地闪雷暴日空间分布图', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        doc.InlineShapes(3).Delete()
+        dayPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
+                          year, target_area, u'地闪雷暴日空间分布.png'])
+        word.Selection.InlineShapes.AddPicture(dayPic)
+
+
         # 处理与去年的对比情况
         last_year_query_results_path = query_results_path.replace(year, str(int(year[:-1]) - 1) + u'年')
         if os.path.exists(last_year_query_results_path):
@@ -169,8 +172,8 @@ def docProcess(year, province, target_area, cwd):
 
         p113 = u'现行国家标准所引用的雷暴日指人工观测（测站周围约15km半径域面）有雷暴天数的多年平均。\
 根据我省闪电定位监测资料推算（以15km为间隔，分别统计各点15km半径范围内的雷暴日，再插值推算），\
-2016年全市地闪雷暴日平均43天，最低为29天，最高67天。空间分布上来看，北部平原地区雷暴日较少，\
-西南大部和东南部分区域雷暴天数较多（见图1-2）。\n'
+%s全市地闪雷暴日平%d天，最低为%d天，最高%d天。空间分布上来看，北部平原地区雷暴日较少，\
+西南大部和东南部分区域雷暴天数较多（见图1-2）。\n'%(year, day_target_area,day_min_target,day_max_target)
 
         rng = doc.Paragraphs(113).Range
         rng.Text = p113
@@ -226,9 +229,9 @@ if __name__ == "__main__":
     # (year, province, target_area,cwd) = sys.argv[1:]
     # sqlQuery(year, province, target_area,cwd)
 
-    year = u"2016年"
-    province = u'河南'
-    target_area = u"新乡市"
+    year = u"2014年"
+    province = u'浙江'
+    target_area = u"绍兴市"
 
     cwd = os.getcwd()
     start = time.clock()
