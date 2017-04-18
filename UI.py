@@ -981,7 +981,7 @@ class MainWindow(QtWidgets.QMainWindow):
             msgBox.exec_()
             return
 
-        program = u'C:/Program Files/Microsoft Office/Office15/EXCEL.EXE'
+        program = u'C:/Program Files/Microsoft Office/Office15/WINWORD.EXE'
         arguments = [doc]
         self.process = QtCore.QProcess(self)
         self.process.start(program, arguments)
@@ -1026,7 +1026,6 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         shutil.copy2(doc, directory)
-
 
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self):
