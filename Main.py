@@ -57,7 +57,7 @@ def mainProcess(datetime, province,target_area, origin_data_path,
 
     #启动外部程序，调用python3处理，注意命令行编码是gbk
     subprocess.call([u'C:/Program Files/Python35/python.exe'.encode('gbk'),
-                     (cwd + u'/StatsProcess.py').encode('gbk'),
+                     (cwd + u'/StatsDocProcess.py').encode('gbk'),
                      datetime.encode('gbk'),province.encode('gbk'),target_area.encode('gbk'),cwd.encode('gbk')])
 
 if __name__ == "__main__":

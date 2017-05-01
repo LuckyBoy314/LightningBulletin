@@ -1,9 +1,10 @@
 # -*- coding: gbk -*-
 
+from win32com.client import DispatchEx, constants
+from win32com.client.gencache import EnsureDispatch
 import pyodbc
 import os
 import time
-from win32com.client import DispatchEx
 import pickle
 import sys
 import shutil
@@ -732,10 +733,9 @@ def sqlQuery(year, province, target_area, cwd):
         sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'negative_stats_pic.png']))
         sheet.ChartObjects(2).Chart.Export(''.join([local_path, '/', 'positive_stats_pic.png']))
 
-        f = open(os.path.join(workspath, 'query_results.pkl'), 'wb')
-        pickle.dump(query_results, f, 2)#不能采用最高的协议，否则在python2.7.8中无法加载进来
+        f = open(os.path.join(workspath, 'sum_target_area_for_next_year.pkl'), 'wb')
+        pickle.dump(Sum_target_area, f, 2)#不能采用最高的协议，否则在python2.7.8中无法加载进来
         f.close()
-
 
     finally:
         db.close()  # 关闭数据连接
@@ -743,21 +743,295 @@ def sqlQuery(year, province, target_area, cwd):
         workbook.Close()  # 关闭工作薄文件
         excel.Quit()  # 关闭EXCEL应用程序
 
+    return query_results
+
+def docProcess(year, province, target_area, cwd):
+
+    query_results = sqlQuery(year, province, target_area, cwd)
+
+    # 打开word文档
+    EnsureDispatch('Word.Application')
+    word = DispatchEx('Word.Application')
+    word.Visible = False
+
+    doc_origin = ''.join([cwd, u'/data/', u'公报文档模板_%s.docx'%target_area])
+    doc = ''.join([cwd, u'/temp/', province, '/', year, '/', target_area, '.gdb/',
+                   year, target_area, u'公报文档.docx'])
+
+    #if not os.path.exists(doc):
+    shutil.copy2(doc_origin, doc)
+
+    doc = word.Documents.Open(doc)
+
+    # 打开Excel应用程序
+    excel = DispatchEx('Excel.Application')
+    excel.Visible = False
+    # 打开文件，即Excel工作薄
+    charts = ''.join([cwd,u'/temp/', province,'/', year, '/', target_area,'.gdb/',
+                      year,target_area,u'公报统计图表.xlsx'])
+    workbook = excel.Workbooks.Open(charts)
+
+    sum_target_area = query_results['Sum_target_area']  # 本地区地闪总数
+    sum_rank_in_province = query_results['Sum_rank_in_province']  # 本地区地闪总数在全省排名
+    density_province = query_results['Density_province']  # 全省密度
+    density_target_area = query_results['Density_target_area']  # 本地区密度
+    density_rank_in_province = query_results['Density_rank_in_province']  # 本地区密度在全省排名
+    stats_of_region = query_results['Stats_of_Region']  # 分县市统计
+    day_target_area = stats_of_region[u'总计'][4] #平均雷暴日
+    day_max_target = stats_of_region[u'总计'][5] #最大雷暴日
+    day_min_target = stats_of_region[u'总计'][6] #最小雷暴日
+
+    sum_max_county_name = query_results['Sum_max_county_name']  # 闪电次数最多的县名
+    sum_max_in_region = query_results['Sum_max_in_region']  # 闪电次数最多的县次数
+    sum_min_county_name = query_results['Sum_min_county_name']  # 闪电次数最少的县名
+    sum_min_in_region = query_results['Sum_min_in_region']  # 闪电次数最少的县次数
+    density_max_county_name = query_results['Density_max_county_name']  # 闪电密度最多的县名
+    density_max_in_region = query_results['Density_max_in_region']  # 闪电密度最多的县密度
+    density_min_county_name = query_results['Density_min_county_name']  # 闪电密度最少的县名
+    density_min_in_region = query_results['Density_min_in_region']  # 闪电密度最少的县密度
+    max_region_percent = query_results['Max_region_percent']  # 地闪次数最大县所占比例
+    min_region_percent = query_results['Min_region_percent']  # 地闪次数最小县所占比例
+
+    peak_month_negative_intensity = query_results['Peak_month_negative_intensity']  # 正闪峰值月份
+    peak_month_positive_intensity = query_results['Peak_month_positive_intensity']  # 负闪峰值月份
+    max_month_region = query_results['Max_month_region']  # 地闪次数最多的月份
+    max_three_months = query_results['Max_three_months']  # 地闪次数最多的三个月
+    max_months_percent = query_results['Max_months_percent']  # 地闪次数最多三个月所占比例
+    months_zero = query_results['Months_zero']  # 没有检测到地闪的月份
+    stats_of_Month = query_results['Stats_of_Month']  # 分月统计，负闪次数、负闪强度、正闪次数、正闪强度、总次数
+    first_date = query_results['First_date']  # 雷暴初日
+
+    stats_of_province = query_results[u'Stats_of_Province']
+
+    try:
+        # ******页眉页脚处理*******
+        # 设置首页、奇偶页的页眉页脚全部一样
+        doc.PageSetup.DifferentFirstPageHeaderFooter = False
+        doc.PageSetup.OddAndEvenPagesHeaderFooter = False
+        # 整体替换页眉
+        header = doc.Sections(2).Headers(1).Range
+        header.Find.ClearFormatting()
+        header.Find.Replacement.ClearFormatting()
+        header.Find.Execute(u'2015年', False, False, False, False, False, True, 1, False, year, 2)
+        header.Find.Execute(u'绍兴市', False, False, False, False, False, True, 1, False, target_area, 2)
+        # 整体替换页脚
+        footer = doc.Sections(2).Footers(1).Range
+        footer.Find.ClearFormatting()
+        footer.Find.Replacement.ClearFormatting()
+        footer.Find.Execute(u'2015年', False, False, False, False, False, True, 1, False, year, 2)
+        footer.Find.Execute(u'绍兴市', False, False, False, False, False, True, 1, False, target_area, 2)
+
+        # ******替换图片*********
+        word.Selection.Find.Execute(FindText=u'图1-1 地闪密度空间分布图', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        doc.InlineShapes(2).Delete()
+        densityPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
+                              year, target_area, u'闪电密度空间分布.png'])
+        word.Selection.InlineShapes.AddPicture(densityPic)
+
+        word.Selection.Find.Execute(FindText=u'图1-2 地闪雷暴日空间分布图', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        doc.InlineShapes(3).Delete()
+        dayPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
+                          year, target_area, u'地闪雷暴日空间分布.png'])
+        word.Selection.InlineShapes.AddPicture(dayPic)
+
+        #在word中定位
+        word.Selection.Find.Execute(FindText=u'图1-3 地闪分月统计', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        #删除原有图表
+        doc.InlineShapes(4).Delete()
+        #复制Excel中图表
+        sheet = workbook.Worksheets(u'分月统计')
+        sheet.ChartObjects(1).Chart.ChartArea.Copy()
+        #在word中粘贴
+        word.Selection.PasteAndFormat(1) #wdChartLinked
+
+        word.Selection.Find.Execute(FindText=u'图1-4 地闪分时段统计', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        doc.InlineShapes(5).Delete()
+        sheet = workbook.Worksheets(u'分时段统计')
+        sheet.ChartObjects(1).Chart.ChartArea.Copy()
+        word.Selection.PasteAndFormat(1) #wdChartLinked
+
+        word.Selection.Find.Execute(FindText=u'图1-5 负地闪强度分布', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        doc.InlineShapes(6).Delete()
+        sheet = workbook.Worksheets(u'强度分布统计')
+        sheet.ChartObjects(1).Chart.ChartArea.Copy()
+        word.Selection.PasteAndFormat(1) #wdChartLinked
+
+        word.Selection.Find.Execute(FindText=u'图 1-6 正地闪强度分布', Wrap=1)
+        word.Selection.MoveLeft(Count=3)
+        doc.InlineShapes(7).Delete()
+        sheet.ChartObjects(2).Chart.ChartArea.Copy()
+        word.Selection.PasteAndFormat(1) #wdChartLinked
+
+
+        #************处理表格**************
+        if province == u'浙江':
+            regions = [u'杭州',u'宁波',u'湖州', u'嘉兴', u'绍兴', u'金华', u'台州', u'温州', u'衢州', u'丽水', u'舟山',u'总计']
+            countries = [u'越城区', u'柯桥区', u'上虞区', u'诸暨市', u'嵊州市', u'新昌县', u'总计']
+            n_regions = len(regions)
+            n_countries = len(countries)
+
+            table_region  = doc.Tables(1)
+            for i in range(n_countries):
+                table_region.Cell(2,i+2).Range.Text = str(stats_of_region[countries[i]][0])#地闪次数
+                table_region.Cell(3,i+2).Range.Text = str(stats_of_region[countries[i]][1])#平均地闪密度
+                table_region.Cell(4,i+2).Range.Text = str(stats_of_region[countries[i]][4])#平均雷暴日
+
+            table_province = doc.Tables(2)
+            for i in range(n_regions):
+                for j in range(2):
+                    table_province.Cell(j+2,i+2).Range.Text = str(stats_of_province[regions[i]][j])
+
+        elif province == u'河南':
+            regions = [u'郑州',u'开封',u'洛阳',u'平顶山',u'安阳',u'鹤壁',u'新乡',u'焦作',u'濮阳',
+                       u'许昌',u'漯河',u'三门峡',u'商丘',u'周口',u'驻马店',u'南阳',u'信阳',u'济源', u'总计']
+            countries = [u'市区', u'新乡县', u'辉县市', u'卫辉市', u'获嘉县', u'原阳县',u'延津县', u'封丘县', u'长垣县', u'总计']
+            n_regions = len(regions)
+            n_countries = len(countries)
+
+            table_region  = doc.Tables(1)
+            for i in range(n_countries):
+                table_region.Cell(2,i+2).Range.Text = str(stats_of_region[countries[i]][0])#地闪次数
+                table_region.Cell(3,i+2).Range.Text = str(stats_of_region[countries[i]][1])#平均地闪密度
+                table_region.Cell(4,i+2).Range.Text = str(stats_of_region[countries[i]][4])#平均雷暴日
+
+            table_province = doc.Tables(2)
+            for i in range(10):
+                for j in range(2):
+                    table_province.Cell(j+2,i+2).Range.Text = str(stats_of_province[regions[i]][j])
+            table_province_xu = doc.Tables(3)
+            for i in range(9):
+                for j in range(2):
+                    table_province_xu.Cell(j+2,i+2).Range.Text = str(stats_of_province[regions[i+10]][j])
+
+        #****************段落文字处理*******************
+        # 处理与去年的对比情况
+        query_results_path = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb/', 'sum_target_area_for_next_year.pkl'])
+        last_year_query_results_path = query_results_path.replace(year, str(int(year[:-1]) - 1) + u'年')
+        if os.path.exists(last_year_query_results_path):
+            f = open(last_year_query_results_path, 'rb')
+            sum_target_area_last_year = pickle.load(f)
+            f.close()
+
+            rate = (sum_target_area - sum_target_area_last_year) / float(sum_target_area_last_year)
+
+            if 0.05 <= rate < 0.1:
+                compare = u'略有增多'
+            elif 0.1 <= rate < 0.3:
+                compare = u'有所增多'
+            elif 0.3 <= rate < 0.9:
+                compare = u'增幅较大'
+            elif 0.9 <= rate:
+                compare = u'大幅增多'
+
+            elif -0.1 < rate <= -0.05:
+                compare = u'略有减少'
+            elif -0.3 < rate <= -0.1:
+                compare = u'有所减少'
+            elif -0.9 < rate <= -0.3:
+                compare = u'减幅较大'
+            elif rate <= -0.9:
+                compare = u'大幅减少'
+            else:
+                compare = u'基本持平'
+
+            compare_with_last_year = u'与上年的地闪%d次相比，%s。' % (sum_target_area_last_year, compare)
+        else:
+            compare_with_last_year = ''
+
+        if density_target_area > density_province:
+            compare_with_province = u'高于'
+        else:
+            compare_with_province = u'低于'
+
+        p1 = u'%s我市共发生地闪%d次，平均地闪密度%.2f次/km?，平均雷暴日%d天（见表1-1）。%s\
+从时间分布来看，地闪主要集中在%d、%d、%d月，三个月地闪占全年总地闪次数的%.2f%%。从空间分布来看，%s发生地闪次数最多，%s最少。\
+全市地闪平均密度%s全省平均的%.2f次/km?，在全省各市中%s闪次数排第%d位，地闪平均密度排第%d位（见表1-2）。' % (
+            year, sum_target_area, density_target_area, day_target_area, compare_with_last_year,
+            max_three_months[0], max_three_months[1], max_three_months[2], max_months_percent,
+            sum_max_county_name, sum_min_county_name, compare_with_province, density_province,
+            target_area, sum_rank_in_province, density_rank_in_province)
+
+
+        p2 = u'据不完全统计，2016年全市因雷电引发的灾害共148起，无人员伤亡事故。\
+造成直接经济损失达7788.04万元，间接经济损失677.42万元。'
+
+
+        p3 = u'从地区统计来看，地区分布相对不均，%s地闪次数最多，共%d次，%s最少，只有%d次，\
+两者分别占全市总地闪数的%.2f%%和%.2f%%。从平均密度统计来看，%s密度最高，为%.2f次/km?，\
+%s最低，为%.2f次/km?（见表1-1）。' % (sum_max_county_name, sum_max_in_region, sum_min_county_name, sum_min_in_region,
+                              max_region_percent, min_region_percent,
+                              density_max_county_name, density_max_in_region,
+                              density_min_county_name, density_min_in_region)
+
+
+        p4 = u'从地闪密度空间分布图上（见图1-1）可以看出，诸暨西北部、嵊州和诸暨交界区域地闪密度较高，\
+最高超过5次/km?。新昌东部有部分地区，地闪密度超过3次/km?，全市大部分地区地闪密度小于2次/km?。'
+
+
+        p5 = u'现行国家标准所引用的雷暴日指人工观测（测站周围约15km半径域面）有雷暴天数的多年平均。\
+根据我省闪电定位监测资料推算（以15km为间隔，分别统计各点15km半径范围内的雷暴日，再插值推算），\
+%s全市地闪雷暴日平%d天，最低为%d天，最高%d天。空间分布上来看，北部平原地区雷暴日较少，\
+西南大部和东南部分区域雷暴天数较多（见图1-2）。'%(year, day_target_area,day_min_target,day_max_target)
+
+
+        if len(months_zero) == 0:
+            months_zero_description = u''
+        elif len(months_zero) == 1:
+            months_zero_description = u'%d月未监测到地闪，' % months_zero[0]
+        elif len(months_zero) == 2:
+            months_zero_description = u'%d月和%d月未监测到地闪，' % (months_zero[0], months_zero[1])
+        else:
+            s = u'月、'.join(map(lambda d: str(d), months_zero[:len(months_zero) - 1]))
+            months_zero_description = u''.join([s, u'月和%d月都未监测到地闪，' % months_zero[-1]])
+
+        p6 = u'%s%s雷电初日为%s。从分月统计来看，地闪次数随月份呈现近似正态分布特征，%s\
+地闪次数峰值出现在%d月，%d、%d、%d月是雷暴高发的月份，三个月地闪次数占总数的%.2f%%。\
+正、负地闪平均强度的峰值分别在%d月和%d月，其他月份波动平缓(见图1-3) 。' % (year, target_area,
+                                               first_date, months_zero_description,
+                                               max_month_region, max_three_months[0], max_three_months[1],
+                                               max_three_months[2],
+                                               max_months_percent,
+                                               peak_month_positive_intensity, peak_month_negative_intensity)
+
+
+        p7 = u'从分时段统计来看，地闪次数峰值出现在第18个时段（17:00-18:00），地闪主要集中在午后两点到晚上九点，\
+七个时段内的地闪次数占总数的d%。地闪平均强度随时间呈波状起伏特征，但总体波动不大。\
+正闪平均强度峰值在第7个时段（7:00-8:00），负闪平均强度峰值在第11个时段（11:00-12:00）(见图1-4)。'
+
+        p8 = u'由正、负地闪强度分布图可见，地闪次数随地闪强度呈近似正态分布特征。正地闪主要集中在5-60kA内（见图1-5），\
+该区间内正地闪次数约占总地闪的87.20%，负地闪主要分布在5-60kA内（见图1-6），\
+该区间内负地闪次数约占总负地闪的91.46%。'
+
+        paragraphs = [p1,p2,p3,p4,p5,p6,p7,p8]
+        for i in range(8):
+            word.Selection.Find.Execute(FindText=u'#段落%d#'%(i+1), Wrap=1)
+            word.Selection.TypeText(Text = paragraphs[i])
+    finally:
+        doc.Save()
+        doc.Close()
+        word.Quit()
+        workbook.Close()
+        excel.Quit()
 
 if __name__ == "__main__":
 
-    (year, province, target_area,cwd) = sys.argv[1:]
-    sqlQuery(year, province, target_area,cwd)
+    # (year, province, target_area,cwd) = sys.argv[1:]
+    # docProcess(year, province, target_area,cwd)
 
-    # year = u"2016年"
-    # province = u'河南'
-    # target_area = u"新乡市"
-    #
-    # cwd = os.getcwd()
-    # start = time.clock()
-    # # ***********************测试程序*********************************"
-    # sqlQuery(year, province, target_area, cwd)
-    # # ***********************测试程序*********************************"
-    # end = time.clock()
-    # elapsed = end - start
-    # print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))
+    year = u"2016年"
+    province = u'河南'
+    target_area = u"新乡市"
+
+    cwd = os.getcwd()
+    start = time.clock()
+    # ***********************测试程序*********************************"
+    docProcess(year, province, target_area, cwd)
+    # ***********************测试程序*********************************"
+    end = time.clock()
+    elapsed = end - start
+    print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))
