@@ -1,4 +1,4 @@
-# -*- coding: gbk -*-
+# -*- coding: utf-8-*-
 
 from win32com.client import DispatchEx, constants
 from win32com.client.gencache import EnsureDispatch
@@ -9,113 +9,101 @@ import pickle
 import sys
 import shutil
 
+
 def dict2list(dic: dict):
-    ''' ½«×Öµä×ª»¯ÎªÁĞ±í '''
+    ''' å°†å­—å…¸è½¬åŒ–ä¸ºåˆ—è¡¨ '''
     keys = dic.keys()
     vals = dic.values()
     lst = [(key, val) for key, val in zip(keys, vals)]
     return lst
 
 
-def sqlQuery(year, province, target_area, cwd):
-    local_path = ''.join([cwd, u"/temp/", province, '/', year, '/',target_area,'.gdb'])
+def sqlQuery(workbook, year, province, target_area, cwd):
+    local_path = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb'])
     query_results = {}
 
-    # Á´½ÓÊı¾İ¿â
+    # é“¾æ¥æ•°æ®åº“
     database = ''.join([cwd, u"/temp/", province, '/', year, '/SQL.mdb;'])
 
     db = pyodbc.connect(''.join(['DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};', 'DBQ=', database]))
     cursor = db.cursor()
-    data_table = ''.join(['data', year])  # ²éÑ¯±í
+    data_table = ''.join(['data', year])  # æŸ¥è¯¢è¡¨
 
-    # ´ò¿ªExcelÓ¦ÓÃ³ÌĞò
-    excel = DispatchEx('Excel.Application')
-    excel.Visible = False
-    # ´ò¿ªÎÄ¼ş£¬¼´Excel¹¤×÷±¡
-    charts_origin = ''.join([cwd,u'/data/',u'¹«±¨Í¼±íÄ£°å.xlsx'])
-    charts = ''.join([cwd,u'/temp/', province,'/', year, '/', target_area,'.gdb/',
-                      year,target_area,u'¹«±¨Í³¼ÆÍ¼±í.xlsx'])
-
-    shutil.copy2(charts_origin,charts)
-
-    workbook = excel.Workbooks.Open(charts)
-
-    # ¶ÁÈ¡Ê¡ÏÂÊô¸÷µØ¼¶ÊĞÃæ»ı
+    # è¯»å–çœä¸‹å±å„åœ°çº§å¸‚é¢ç§¯
     workspath = ''.join([cwd, u"/temp/", province, '/', year, '/', 'GDB.gdb'])
     f = open(os.path.join(workspath, 'province_area.pkl'), 'rb')
-    province_area = pickle.load(f)  # ÖîÈç{'ĞÂÏçÊĞ': XXX, '°²ÑôÊĞ': XXX}
+    province_area = pickle.load(f)  # è¯¸å¦‚{'æ–°ä¹¡å¸‚': XXX, 'å®‰é˜³å¸‚': XXX}
     f.close()
 
     workspath = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb'])
-    # ¶ÁÈ¡µØ¼¶ÊĞÏÂÊô¸÷ÏØÊĞÃæ»ı
+    # è¯»å–åœ°çº§å¸‚ä¸‹å±å„å¿å¸‚é¢ç§¯
     f = open(os.path.join(workspath, 'region_area.pkl'), 'rb')
-    region_area = pickle.load(f)  # ÖîÈç{'ĞÂÏçÊĞ'£ºXXX, 'ÑÓ½òÏØ':XXX}
+    region_area = pickle.load(f)  # è¯¸å¦‚{'æ–°ä¹¡å¸‚'ï¼šXXX, 'å»¶æ´¥å¿':XXX}
     f.close()
 
-    # ¶ÁÈ¡Ä¿±êµØ¼¶ÇøÓòµÄÀ×±©ÈÕºÍÉÁµçÃÜ¶ÈµÄÍ³¼ÆĞÅÏ¢
+    # è¯»å–ç›®æ ‡åœ°çº§åŒºåŸŸçš„é›·æš´æ—¥å’Œé—ªç”µå¯†åº¦çš„ç»Ÿè®¡ä¿¡æ¯
     f = open(os.path.join(workspath, 'stats.pkl'), 'rb')
-    stat_density = pickle.load(f)  # ÖîÈç{'ĞÂÏç':(×î´óÖµ£¬×îĞ¡Öµ)}
-    stat_day = pickle.load(f)  # ÖîÈç{'ĞÂÏç':(Æ½¾ùÖµ£¬×î´óÖµ£¬×îĞ¡Öµ)}
+    stat_density = pickle.load(f)  # è¯¸å¦‚{'æ–°ä¹¡':(æœ€å¤§å€¼ï¼Œæœ€å°å€¼)}
+    stat_day = pickle.load(f)  # è¯¸å¦‚{'æ–°ä¹¡':(å¹³å‡å€¼ï¼Œæœ€å¤§å€¼ï¼Œæœ€å°å€¼)}
     f.close()
 
     try:
-        # ************·ÖµØÇøÍ³¼Æ**********
+        # ************åˆ†åœ°åŒºç»Ÿè®¡**********
         sql = """
         SELECT count(*) AS num, Region
         FROM %s
         WHERE Province= \'%s\'
         GROUP BY Region
         ORDER BY count(*) DESC
-        """ % (data_table, province + 'Ê¡')
+        """ % (data_table, province + 'çœ')
 
-        # ´¦ÀíSQL²éÑ¯½á¹û£¬Ë³±ã¼ÇÂ¼±¾µØÇøµØÉÁ´ÎÊıÔÚÈ«Ê¡µÄÅÅÃû
-        sum_province_dict = {}  # È«Ê¡¸÷µØÇøµØÉÁ×ÜÊı
+        # å¤„ç†SQLæŸ¥è¯¢ç»“æœï¼Œé¡ºä¾¿è®°å½•æœ¬åœ°åŒºåœ°é—ªæ¬¡æ•°åœ¨å…¨çœçš„æ’å
+        sum_province_dict = {}  # å…¨çœå„åœ°åŒºåœ°é—ªæ€»æ•°
         rank = 0
         for row in cursor.execute(sql):
-            sum_province_dict[row[1]] = row[0]  # ÒÔ Region£ºnum½¨Á¢×Öµä£¬·½±ãÏÂÃæ¸³Öµ
+            sum_province_dict[row[1]] = row[0]  # ä»¥ Regionï¼šnumå»ºç«‹å­—å…¸ï¼Œæ–¹ä¾¿ä¸‹é¢èµ‹å€¼
             rank += 1
             # print type(row[1])
             if row[1] == target_area:
-                Sum_rank_in_province = rank  # ±¾µØÇøµØÉÁ´ÎÊıÔÚÈ«Ê¡µÄÅÅÃû
+                Sum_rank_in_province = rank  # æœ¬åœ°åŒºåœ°é—ªæ¬¡æ•°åœ¨å…¨çœçš„æ’å
 
-        Sum_target_area = sum_province_dict[target_area]  # ±¾µØÇøµØÉÁ×ÜÊı
-        Density_target_area = round(Sum_target_area / province_area[target_area],2) # ±¾µØÇøµØÉÁÃÜ¶È
+        Sum_target_area = sum_province_dict[target_area]  # æœ¬åœ°åŒºåœ°é—ªæ€»æ•°
+        Density_target_area = round(Sum_target_area / province_area[target_area], 2)  # æœ¬åœ°åŒºåœ°é—ªå¯†åº¦
 
-
-        # ¼ÆËãÈ«Ê¡¸÷µØÇøµØÉÁÃÜ¶ÈºÍÈ«Ê¡Æ½¾ùÃÜ¶È
-        density_province_dict = {}  # È«Ê¡¸÷µØÇøÃÜ¶È
+        # è®¡ç®—å…¨çœå„åœ°åŒºåœ°é—ªå¯†åº¦å’Œå…¨çœå¹³å‡å¯†åº¦
+        density_province_dict = {}  # å…¨çœå„åœ°åŒºå¯†åº¦
         Density_province = 0
         for key in sum_province_dict:
-            density_province_dict[key] = round(sum_province_dict[key] / province_area[key],2)
+            density_province_dict[key] = round(sum_province_dict[key] / province_area[key], 2)
             Density_province += density_province_dict[key]
-        Density_province = round(Density_province/len(province_area),2)  # È«Ê¡Æ½¾ùµØÉÁÃÜ¶È
-        # ÃÜ¶È´Ó´óµ½Ğ¡½øĞĞÅÅĞò
+        Density_province = round(Density_province / len(province_area), 2)  # å…¨çœå¹³å‡åœ°é—ªå¯†åº¦
+        # å¯†åº¦ä»å¤§åˆ°å°è¿›è¡Œæ’åº
         density_province_sorted = sorted(dict2list(density_province_dict), key=lambda d: d[1], reverse=True)
 
-        # ¼ÆËã±¾µØÇøµØÉÁÃÜ¶ÈÅÅÃû
+        # è®¡ç®—æœ¬åœ°åŒºåœ°é—ªå¯†åº¦æ’å
         rank = 0
         for item in density_province_sorted:
             rank += 1
             if item[0] == target_area:
-                Density_rank_in_province = rank  # ±¾µØÇøµØÉÁÃÜ¶ÈÔÚÈ«Ê¡µÄÅÅÃû
+                Density_rank_in_province = rank  # æœ¬åœ°åŒºåœ°é—ªå¯†åº¦åœ¨å…¨çœçš„æ’å
                 break
 
-        #Ê¡·ÖµØÇøµÄµçÉÁ´ÎÊıºÍÃÜ¶È
+        # çœåˆ†åœ°åŒºçš„ç”µé—ªæ¬¡æ•°å’Œå¯†åº¦
         Stats_of_Province = {}
         sum_of_province = 0
         for key in sum_province_dict:
             sum_of_province += sum_province_dict[key]
             Stats_of_Province[key[:-1]] = (sum_province_dict[key], density_province_dict[key])
-        Stats_of_Province[u'×Ü¼Æ'] = (sum_of_province, Density_province)
+        Stats_of_Province[u'æ€»è®¡'] = (sum_of_province, Density_province)
 
-        query_results['Sum_target_area'] = Sum_target_area # ±¾µØÇøµØÉÁ×ÜÊı
-        query_results['Sum_rank_in_province'] = Sum_rank_in_province # ±¾µØÇøµØÉÁ×ÜÊıÔÚÈ«Ê¡ÅÅÃû
-        query_results['Density_province'] = Density_province # È«Ê¡ÃÜ¶È
-        query_results['Density_target_area'] = Density_target_area # ±¾µØÇøÃÜ¶È
-        query_results['Density_rank_in_province'] = Density_rank_in_province # ±¾µØÇøÃÜ¶ÈÔÚÈ«Ê¡ÅÅÃû
-        query_results['Stats_of_Province'] = Stats_of_Province # Ê¡·ÖµØÇøÍ³¼Æ
+        query_results['Sum_target_area'] = Sum_target_area  # æœ¬åœ°åŒºåœ°é—ªæ€»æ•°
+        query_results['Sum_rank_in_province'] = Sum_rank_in_province  # æœ¬åœ°åŒºåœ°é—ªæ€»æ•°åœ¨å…¨çœæ’å
+        query_results['Density_province'] = Density_province  # å…¨çœå¯†åº¦
+        query_results['Density_target_area'] = Density_target_area  # æœ¬åœ°åŒºå¯†åº¦
+        query_results['Density_rank_in_province'] = Density_rank_in_province  # æœ¬åœ°åŒºå¯†åº¦åœ¨å…¨çœæ’å
+        query_results['Stats_of_Province'] = Stats_of_Province  # çœåˆ†åœ°åŒºç»Ÿè®¡
 
-        # ********* ·ÖÏØÍ³¼Æ***********
+        # ********* åˆ†å¿ç»Ÿè®¡***********
         sql = """
         SELECT count(*) AS num, County
         FROM %s
@@ -124,231 +112,232 @@ def sqlQuery(year, province, target_area, cwd):
         ORDER BY count(*) DESC
         """ % (data_table, target_area)
 
-        # ´¦ÀíSQL²éÑ¯½á¹û£¬Ë³±ã¼ÇÂ¼µØÉÁ´ÎÊıµÄ×î´óºÍ×îĞ¡Öµ
-        sum_region_dict = {}  # ±¾µØÇøÏÂÊô¸÷ÏØµØÉÁ×ÜÊı
+        # å¤„ç†SQLæŸ¥è¯¢ç»“æœï¼Œé¡ºä¾¿è®°å½•åœ°é—ªæ¬¡æ•°çš„æœ€å¤§å’Œæœ€å°å€¼
+        sum_region_dict = {}  # æœ¬åœ°åŒºä¸‹å±å„å¿åœ°é—ªæ€»æ•°
         rank = 0
         num_region = len(region_area)
         for row in cursor.execute(sql):
-            sum_region_dict[row[1]] = row[0]  # ÒÔ Region£ºnum½¨Á¢×Öµä£¬·½±ãÏÂÃæ¸³Öµ
+            sum_region_dict[row[1]] = row[0]  # ä»¥ Regionï¼šnumå»ºç«‹å­—å…¸ï¼Œæ–¹ä¾¿ä¸‹é¢èµ‹å€¼
             rank += 1
             if rank == 1:
-                Sum_max_county_name = row[1]  # ÉÁµç´ÎÊı×î¶àµÄÏØÃû
-                Sum_max_in_region = row[0]  # ÒÔ¼°´ÎÊı
+                Sum_max_county_name = row[1]  # é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿å
+                Sum_max_in_region = row[0]  # ä»¥åŠæ¬¡æ•°
             elif rank == num_region:
-                Sum_min_county_name = row[1]  # ÉÁµç´ÎÊı×îÉÙµÄÏØÃû
-                Sum_min_in_region = row[0]  # ÒÔ¼°´ÎÊı
+                Sum_min_county_name = row[1]  # é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿å
+                Sum_min_in_region = row[0]  # ä»¥åŠæ¬¡æ•°
 
-        # ¼ÆËãµØÉÁ×ÜÊı×î´ó¡¢×îĞ¡µÄÏØµÄÕ¼Ä¿±êÇøÓò×ÜÊıµÄ±ÈÀı
-        Max_region_percent = round(Sum_max_in_region / float(Sum_target_area) * 100,2)
-        Min_region_percent = round(Sum_min_in_region / float(Sum_target_area) * 100,2)
+        # è®¡ç®—åœ°é—ªæ€»æ•°æœ€å¤§ã€æœ€å°çš„å¿çš„å ç›®æ ‡åŒºåŸŸæ€»æ•°çš„æ¯”ä¾‹
+        Max_region_percent = round(Sum_max_in_region / float(Sum_target_area) * 100, 2)
+        Min_region_percent = round(Sum_min_in_region / float(Sum_target_area) * 100, 2)
 
-        # ¼ÆËã±¾µØÇø¸÷ÏØÊĞµØÉÁÃÜ¶È
+        # è®¡ç®—æœ¬åœ°åŒºå„å¿å¸‚åœ°é—ªå¯†åº¦
         density_region_dict = {}
 
         for key in sum_region_dict:
-            density_region_dict[key] = round(sum_region_dict[key] / region_area[key],2)
-        # ÃÜ¶È´Ó´óµ½Ğ¡½øĞĞÅÅĞò
+            density_region_dict[key] = round(sum_region_dict[key] / region_area[key], 2)
+        # å¯†åº¦ä»å¤§åˆ°å°è¿›è¡Œæ’åº
         density_region_sorted = sorted(dict2list(density_region_dict), key=lambda d: d[1], reverse=True)
-        # ×î´ó¡¢×îĞ¡ÃÜ¶È
-        Density_max_county_name = density_region_sorted[0][0]  # ÉÁµçÃÜ¶È×î¸ßµÄÏØÃû
-        Density_max_in_region = density_region_sorted[0][1]  # ÉÁµçÃÜ¶È×î¸ßµÄÏØÃÜ¶È
-        Density_min_county_name = density_region_sorted[num_region - 1][0]  # ÉÁµçÃÜ¶È×îµÍµÄÏØÃû
-        Density_min_in_region = density_region_sorted[num_region - 1][1]  # ÉÁµçÃÜ¶È×îµÍµÄÏØÃÜ¶È
+        # æœ€å¤§ã€æœ€å°å¯†åº¦
+        Density_max_county_name = density_region_sorted[0][0]  # é—ªç”µå¯†åº¦æœ€é«˜çš„å¿å
+        Density_max_in_region = density_region_sorted[0][1]  # é—ªç”µå¯†åº¦æœ€é«˜çš„å¿å¯†åº¦
+        Density_min_county_name = density_region_sorted[num_region - 1][0]  # é—ªç”µå¯†åº¦æœ€ä½çš„å¿å
+        Density_min_in_region = density_region_sorted[num_region - 1][1]  # é—ªç”µå¯†åº¦æœ€ä½çš„å¿å¯†åº¦
 
-        Stats_of_Region = {}#µØÉÁ´ÎÊı¡¢Æ½¾ùµØÉÁÃÜ¶È¡¢×î´óµØÉÁÃÜ¶È¡¢×îĞ¡µØÉÁÃÜ¶È¡¢Æ½¾ùÀ×±©ÈÕ¡¢×î´óÀ×±©ÈÕ¡¢×îĞ¡À×±©ÈÕ
+        Stats_of_Region = {}  # åœ°é—ªæ¬¡æ•°ã€å¹³å‡åœ°é—ªå¯†åº¦ã€æœ€å¤§åœ°é—ªå¯†åº¦ã€æœ€å°åœ°é—ªå¯†åº¦ã€å¹³å‡é›·æš´æ—¥ã€æœ€å¤§é›·æš´æ—¥ã€æœ€å°é›·æš´æ—¥
         for key in sum_region_dict:
             Stats_of_Region[key] = (sum_region_dict[key], density_region_dict[key],
-                                    stat_density[key[:-1]][0],stat_density[key[:-1]][1],
-                                    stat_day[key[:-1]][0],stat_day[key[:-1]][1],stat_day[key[:-1]][2])
+                                    stat_density[key[:-1]][0], stat_density[key[:-1]][1],
+                                    stat_day[key[:-1]][0], stat_day[key[:-1]][1], stat_day[key[:-1]][2])
         max_density_region = max([stat_density[each][0] for each in stat_density])
         min_density_region = min([stat_density[each][1] for each in stat_density])
-        Day_target_area = int(sum([stat_day[each][0] for each in stat_day])/num_region)
+        Day_target_area = int(sum([stat_day[each][0] for each in stat_day]) / num_region)
         max_day_region = max([stat_day[each][1] for each in stat_day])
         min_day_region = min([stat_day[each][2] for each in stat_day])
 
-        Stats_of_Region[u'×Ü¼Æ'] = (Sum_target_area,Density_target_area,max_density_region,min_density_region,
-                                  Day_target_area,max_day_region,min_day_region)
+        Stats_of_Region[u'æ€»è®¡'] = (Sum_target_area, Density_target_area, max_density_region, min_density_region,
+                                  Day_target_area, max_day_region, min_day_region)
 
-        query_results['Sum_max_county_name'] = Sum_max_county_name # ÉÁµç´ÎÊı×î¶àµÄÏØÃû
-        query_results['Sum_max_in_region'] = Sum_max_in_region # ÉÁµç´ÎÊı×î¶àµÄÏØ´ÎÊı
-        query_results['Sum_min_county_name'] = Sum_min_county_name # ÉÁµç´ÎÊı×îÉÙµÄÏØÃû
-        query_results['Sum_min_in_region'] = Sum_min_in_region # ÉÁµç´ÎÊı×îÉÙµÄÏØ´ÎÊı
-        query_results['Density_max_county_name'] = Density_max_county_name # ÉÁµçÃÜ¶È×î¶àµÄÏØÃû
-        query_results['Density_max_in_region'] = Density_max_in_region # ÉÁµçÃÜ¶È×î¶àµÄÏØÃÜ¶È
-        query_results['Density_min_county_name'] = Density_min_county_name # ÉÁµçÃÜ¶È×îÉÙµÄÏØÃû
-        query_results['Density_min_in_region'] = Density_min_in_region # ÉÁµçÃÜ¶È×îÉÙµÄÏØÃÜ¶È
-        query_results['Max_region_percent'] = Max_region_percent # µØÉÁ´ÎÊı×î´óÏØËùÕ¼±ÈÀı
-        query_results['Min_region_percent'] = Min_region_percent # µØÉÁ´ÎÊı×îĞ¡ÏØËùÕ¼±ÈÀı
-        query_results['Stats_of_Region'] = Stats_of_Region  # ·ÖÏØÊĞÍ³¼Æ
+        query_results['Sum_max_county_name'] = Sum_max_county_name  # é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿å
+        query_results['Sum_max_in_region'] = Sum_max_in_region  # é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿æ¬¡æ•°
+        query_results['Sum_min_county_name'] = Sum_min_county_name  # é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿å
+        query_results['Sum_min_in_region'] = Sum_min_in_region  # é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿æ¬¡æ•°
+        query_results['Density_max_county_name'] = Density_max_county_name  # é—ªç”µå¯†åº¦æœ€å¤šçš„å¿å
+        query_results['Density_max_in_region'] = Density_max_in_region  # é—ªç”µå¯†åº¦æœ€å¤šçš„å¿å¯†åº¦
+        query_results['Density_min_county_name'] = Density_min_county_name  # é—ªç”µå¯†åº¦æœ€å°‘çš„å¿å
+        query_results['Density_min_in_region'] = Density_min_in_region  # é—ªç”µå¯†åº¦æœ€å°‘çš„å¿å¯†åº¦
+        query_results['Max_region_percent'] = Max_region_percent  # åœ°é—ªæ¬¡æ•°æœ€å¤§å¿æ‰€å æ¯”ä¾‹
+        query_results['Min_region_percent'] = Min_region_percent  # åœ°é—ªæ¬¡æ•°æœ€å°å¿æ‰€å æ¯”ä¾‹
+        query_results['Stats_of_Region'] = Stats_of_Region  # åˆ†å¿å¸‚ç»Ÿè®¡
 
-        #·ÖÇøÍ³¼Æ½á¹ûĞ´Èëexcel
-        sheet = workbook.Worksheets(u'·ÖÇøÍ³¼Æ')
-        if province == u'Õã½­':
-            regions = [u'º¼Öİ',u'Äş²¨',u'ºşÖİ', u'¼ÎĞË', u'ÉÜĞË', u'½ğ»ª', u'Ì¨Öİ', u'ÎÂÖİ', u'áéÖİ', u'ÀöË®', u'ÖÛÉ½',u'×Ü¼Æ']
-            counties = [u'Ô½³ÇÇø', u'¿ÂÇÅÇø', u'ÉÏÓİÇø', u'ÖîôßÊĞ', u'áÓÖİÊĞ', u'ĞÂ²ıÏØ', u'×Ü¼Æ']
-        elif province == u'ºÓÄÏ':
-            regions = [u'Ö£Öİ',u'¿ª·â',u'ÂåÑô',u'Æ½¶¥É½',u'°²Ñô',u'º×±Ú',u'ĞÂÏç',u'½¹×÷',u'å§Ñô',
-                       u'Ğí²ı',u'äğºÓ',u'ÈıÃÅÏ¿',u'ÉÌÇğ',u'ÖÜ¿Ú',u'×¤Âíµê',u'ÄÏÑô',u'ĞÅÑô',u'¼ÃÔ´', u'×Ü¼Æ']
-            counties = [u'ÊĞÇø', u'ĞÂÏçÏØ', u'»ÔÏØÊĞ', u'ÎÀ»ÔÊĞ', u'»ñ¼ÎÏØ', u'Ô­ÑôÏØ',u'ÑÓ½òÏØ', u'·âÇğÏØ', u'³¤Ô«ÏØ', u'×Ü¼Æ']
+        # åˆ†åŒºç»Ÿè®¡ç»“æœå†™å…¥excel
+        sheet = workbook.Worksheets(u'åˆ†åŒºç»Ÿè®¡')
+        if province == u'æµ™æ±Ÿ':
+            regions = [u'æ­å·', u'å®æ³¢', u'æ¹–å·', u'å˜‰å…´', u'ç»å…´', u'é‡‘å', u'å°å·', u'æ¸©å·', u'è¡¢å·', u'ä¸½æ°´', u'èˆŸå±±', u'æ€»è®¡']
+            counties = [u'è¶ŠåŸåŒº', u'æŸ¯æ¡¥åŒº', u'ä¸Šè™åŒº', u'è¯¸æš¨å¸‚', u'åµŠå·å¸‚', u'æ–°æ˜Œå¿', u'æ€»è®¡']
+        elif province == u'æ²³å—':
+            regions = [u'éƒ‘å·', u'å¼€å°', u'æ´›é˜³', u'å¹³é¡¶å±±', u'å®‰é˜³', u'é¹¤å£', u'æ–°ä¹¡', u'ç„¦ä½œ', u'æ¿®é˜³',
+                       u'è®¸æ˜Œ', u'æ¼¯æ²³', u'ä¸‰é—¨å³¡', u'å•†ä¸˜', u'å‘¨å£', u'é©»é©¬åº—', u'å—é˜³', u'ä¿¡é˜³', u'æµæº', u'æ€»è®¡']
+            counties = [u'å¸‚åŒº', u'æ–°ä¹¡å¿', u'è¾‰å¿å¸‚', u'å«è¾‰å¸‚', u'è·å˜‰å¿', u'åŸé˜³å¿', u'å»¶æ´¥å¿', u'å°ä¸˜å¿', u'é•¿å£å¿', u'æ€»è®¡']
 
         n_regions = len(regions)
         for i in range(n_regions):
-            sheet.Cells(1,i+2).Value = regions[i]
-            sheet.Cells(2,i+2).Value = Stats_of_Province[regions[i]][0]
-            sheet.Cells(3,i+2).Value = Stats_of_Province[regions[i]][1]
+            sheet.Cells(1, i + 2).Value = regions[i]
+            sheet.Cells(2, i + 2).Value = Stats_of_Province[regions[i]][0]
+            sheet.Cells(3, i + 2).Value = Stats_of_Province[regions[i]][1]
 
         n_counties = len(counties)
-        for i in range(n_counties):#i±íÊ¾ÁĞ£¬Ò»¸öÇøÓòµÄĞòºÅ
-            sheet.Cells(5,i+2).Value = counties[i]
-            for j in range(6,13): #j±íÊ¾ĞĞ
-                sheet.Cells(j,i+2).Value = Stats_of_Region[counties[i]][j-6]
+        for i in range(n_counties):  # iè¡¨ç¤ºåˆ—ï¼Œä¸€ä¸ªåŒºåŸŸçš„åºå·
+            sheet.Cells(5, i + 2).Value = counties[i]
+            for j in range(6, 13):  # jè¡¨ç¤ºè¡Œ
+                sheet.Cells(j, i + 2).Value = Stats_of_Region[counties[i]][j - 6]
 
-        # todo SQL²éÑ¯ÓĞ´ıÓÅ»¯
-        # ************·ÖÔÂÍ³¼Æ ÔÂµØÉÁ´ÎÊıºÍÔÂÆ½¾ùÇ¿¶È(¸ºÉÁ)**************
+        # todo SQLæŸ¥è¯¢æœ‰å¾…ä¼˜åŒ–
+        # ************åˆ†æœˆç»Ÿè®¡ æœˆåœ°é—ªæ¬¡æ•°å’Œæœˆå¹³å‡å¼ºåº¦(è´Ÿé—ª)**************
         sql = """
-        SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS ÔÂ·İ
+        SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/1/1# AND Date_< #YEAR/2/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/2/1# AND Date_< #YEAR/3/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/3/1# AND Date_< #YEAR/4/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/4/1# AND Date_< #YEAR/5/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/5/1# AND Date_< #YEAR/6/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/6/1# AND Date_< #YEAR/7/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/7/1# AND Date_< #YEAR/8/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/8/1# AND Date_< #YEAR/9/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/9/1# AND Date_< #YEAR/10/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/10/1# AND Date_< #YEAR/11/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/11/1# AND Date_< #YEAR/12/1#
-        UNION SELECT  count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS ÔÂ·İ
+        UNION SELECT  count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Date_>=#YEAR/12/1# AND Date_<=#YEAR/12/31#
-        ORDER BY ÔÂ·İ
+        ORDER BY æœˆä»½
         """.replace('TARGET_AREA', target_area).replace('YEAR', year[0:4]).replace('QUERY_TABLE', data_table)
 
-        sheet = workbook.Worksheets(u'·ÖÔÂÍ³¼Æ')
+        sheet = workbook.Worksheets(u'åˆ†æœˆç»Ÿè®¡')
         Stats_of_Month = {}
-        i = 1  # ĞĞºÅ
+        i = 1  # è¡Œå·
         month = 0
-        sum_month_dict = {}  # ¼ÇÂ¼·ÖÔÂµØÉÁ×ÜÊı
-        negative_intensity_dict = {}  # ¼ÇÂ¼·ÖÔÂ¸ºÉÁµØÉÁ´ÎÊı
+        sum_month_dict = {}  # è®°å½•åˆ†æœˆåœ°é—ªæ€»æ•°
+        negative_intensity_dict = {}  # è®°å½•åˆ†æœˆè´Ÿé—ªåœ°é—ªæ¬¡æ•°
         for row in cursor.execute(sql):
             i += 1
             month += 1
-            sheet.Cells(i, 2).Value = row[0]  # ¸ºÉÁ´ÎÊı
-            sheet.Cells(i, 5).Value = negative_intensity_dict[month] = row[1] if row[1] is not None else 0  # ¸ºÉÁÇ¿¶È
+            sheet.Cells(i, 2).Value = row[0]  # è´Ÿé—ªæ¬¡æ•°
+            sheet.Cells(i, 5).Value = negative_intensity_dict[month] = row[1] if row[1] is not None else 0  # è´Ÿé—ªå¼ºåº¦
             sum_month_dict[month] = row[0]
-            Stats_of_Month[month] = [row[0],negative_intensity_dict[month]]
+            Stats_of_Month[month] = [row[0], negative_intensity_dict[month]]
 
-        # ¸ºÉÁÇ¿¶È·åÖµËùÔÚÔÂ·İ
+        # è´Ÿé—ªå¼ºåº¦å³°å€¼æ‰€åœ¨æœˆä»½
         negative_intensity_sorted = sorted(dict2list(negative_intensity_dict), key=lambda d: d[1], reverse=True)
         Peak_month_negative_intensity = negative_intensity_sorted[0][0]
 
-        # ************·ÖÔÂÍ³¼Æ ÔÂµØÉÁ´ÎÊıºÍÔÂÆ½¾ùÇ¿¶È(ÕıÉÁ)**************
+        # ************åˆ†æœˆç»Ÿè®¡ æœˆåœ°é—ªæ¬¡æ•°å’Œæœˆå¹³å‡å¼ºåº¦(æ­£é—ª)**************
         sql = """
-        SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS ÔÂ·İ
+        SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/1/1# AND Date_< #YEAR/2/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/2/1# AND Date_< #YEAR/3/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/3/1# AND Date_< #YEAR/4/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/4/1# AND Date_< #YEAR/5/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/5/1# AND Date_< #YEAR/6/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/6/1# AND Date_< #YEAR/7/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/7/1# AND Date_< #YEAR/8/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/8/1# AND Date_< #YEAR/9/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/9/1# AND Date_< #YEAR/10/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/10/1# AND Date_< #YEAR/11/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/11/1# AND Date_< #YEAR/12/1#
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS ÔÂ·İ
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æœˆä»½
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Date_>=#YEAR/12/1# AND Date_<=#YEAR/12/31#
-        ORDER BY ÔÂ·İ
+        ORDER BY æœˆä»½
         """.replace('TARGET_AREA', target_area).replace('YEAR', year[0:4]).replace('QUERY_TABLE', data_table)
 
-        i = 1  # ĞĞºÅ
+        i = 1  # è¡Œå·
         month = 0
-        positive_intensity_dict = {}  # ¼ÇÂ¼ÕıÉÁÇ¿¶È
+        positive_intensity_dict = {}  # è®°å½•æ­£é—ªå¼ºåº¦
         for row in cursor.execute(sql):
             i += 1
             month += 1
-            sheet.Cells(i, 3).Value = row[0]  # ÕıÉÁ´ÎÊı
-            sheet.Cells(i, 6).Value = positive_intensity_dict[month] = row[1] if row[1] is not None else 0  # ÕıÉÁÇ¿¶È
+            sheet.Cells(i, 3).Value = row[0]  # æ­£é—ªæ¬¡æ•°
+            sheet.Cells(i, 6).Value = positive_intensity_dict[month] = row[1] if row[1] is not None else 0  # æ­£é—ªå¼ºåº¦
             sum_month_dict[month] += row[0]
             Stats_of_Month[month].append(row[0])
             Stats_of_Month[month].append(positive_intensity_dict[month])
             Stats_of_Month[month].append(sum_month_dict[month])
 
-        #ĞŞ¸Ä±êÌâ
+        # ä¿®æ”¹æ ‡é¢˜
         title = sheet.ChartObjects(1).Chart.ChartTitle.Text
-        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015Äê', year).replace(u'ÉÜĞËÊĞ', target_area)
-        #µ¼³ö·ÖÔÂÍ³¼ÆÍ¼
-        sheet.ChartObjects(1).Chart.Export(''.join([local_path,'/','month_stats_pic.png']))
+        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015å¹´', year).replace(u'ç»å…´å¸‚', target_area)
+        # å¯¼å‡ºåˆ†æœˆç»Ÿè®¡å›¾
+        sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'month_stats_pic.png']))
 
-        # ÕıÉÁ·åÖµÔÂ·İ
+        # æ­£é—ªå³°å€¼æœˆä»½
         positive_intensity_sorted = sorted(dict2list(positive_intensity_dict), key=lambda d: d[1], reverse=True)
         Peak_month_positive_intensity = positive_intensity_sorted[0][0]
 
         sum_month_sorted = sorted(dict2list(sum_month_dict), key=lambda d: d[1], reverse=True)
-        # µØÉÁ´ÎÊı×î¶àµÄÔÂ·İ
+        # åœ°é—ªæ¬¡æ•°æœ€å¤šçš„æœˆä»½
         Max_month_region = sum_month_sorted[0][0]
-        # µØÉÁ´ÎÊı×î¶àµÄÈı¸öÔÂ
+        # åœ°é—ªæ¬¡æ•°æœ€å¤šçš„ä¸‰ä¸ªæœˆ
         Max_three_months = [sum_month_sorted[0][0], sum_month_sorted[1][0], sum_month_sorted[2][0]]
         Max_three_months.sort()
-        # µØÉÁ´ÎÊı×î¶àÈı¸öÔÂËùÕ¼±ÈÀı
-        Max_months_percent = round(100 * (sum_month_sorted[0][1] + sum_month_sorted[1][1] + sum_month_sorted[2][1]) / float(
-            Sum_target_area),2)
-        # Ã»ÓĞ¼ì²âµ½µØÉÁµÄÔÂ·İ
+        # åœ°é—ªæ¬¡æ•°æœ€å¤šä¸‰ä¸ªæœˆæ‰€å æ¯”ä¾‹
+        Max_months_percent = round(
+            100 * (sum_month_sorted[0][1] + sum_month_sorted[1][1] + sum_month_sorted[2][1]) / float(
+                Sum_target_area), 2)
+        # æ²¡æœ‰æ£€æµ‹åˆ°åœ°é—ªçš„æœˆä»½
         Months_zero = [i[0] for i in sum_month_sorted if i[1] == 0]
         Months_zero.sort()
 
-        query_results['Peak_month_negative_intensity'] = Peak_month_negative_intensity # ÕıÉÁ·åÖµÔÂ·İ
-        query_results['Peak_month_positive_intensity'] = Peak_month_positive_intensity # ¸ºÉÁ·åÖµÔÂ·İ
-        query_results['Max_month_region'] = Max_month_region # µØÉÁ´ÎÊı×î¶àµÄÔÂ·İ
-        query_results['Max_three_months'] = Max_three_months # µØÉÁ´ÎÊı×î¶àµÄÈı¸öÔÂ
-        query_results['Max_months_percent'] = Max_months_percent # µØÉÁ´ÎÊı×î¶àÈı¸öÔÂËùÕ¼±ÈÀı
-        query_results['Months_zero'] = Months_zero # Ã»ÓĞ¼ì²âµ½µØÉÁµÄÔÂ·İ
-        query_results['Stats_of_Month'] = Stats_of_Month # ·ÖÔÂÍ³¼Æ£¬¸ºÉÁ´ÎÊı¡¢¸ºÉÁÇ¿¶È¡¢ÕıÉÁ´ÎÊı¡¢ÕıÉÁÇ¿¶È¡¢×Ü´ÎÊı
+        query_results['Peak_month_negative_intensity'] = Peak_month_negative_intensity  # æ­£é—ªå³°å€¼æœˆä»½
+        query_results['Peak_month_positive_intensity'] = Peak_month_positive_intensity  # è´Ÿé—ªå³°å€¼æœˆä»½
+        query_results['Max_month_region'] = Max_month_region  # åœ°é—ªæ¬¡æ•°æœ€å¤šçš„æœˆä»½
+        query_results['Max_three_months'] = Max_three_months  # åœ°é—ªæ¬¡æ•°æœ€å¤šçš„ä¸‰ä¸ªæœˆ
+        query_results['Max_months_percent'] = Max_months_percent  # åœ°é—ªæ¬¡æ•°æœ€å¤šä¸‰ä¸ªæœˆæ‰€å æ¯”ä¾‹
+        query_results['Months_zero'] = Months_zero  # æ²¡æœ‰æ£€æµ‹åˆ°åœ°é—ªçš„æœˆä»½
+        query_results['Stats_of_Month'] = Stats_of_Month  # åˆ†æœˆç»Ÿè®¡ï¼Œè´Ÿé—ªæ¬¡æ•°ã€è´Ÿé—ªå¼ºåº¦ã€æ­£é—ªæ¬¡æ•°ã€æ­£é—ªå¼ºåº¦ã€æ€»æ¬¡æ•°
 
-        # ****²éÑ¯À×±©³õÈÕ********
+        # ****æŸ¥è¯¢é›·æš´åˆæ—¥********
         sql = """SELECT TOP 1 Date_
         From %s
         Where Region = \'%s\'
@@ -356,182 +345,182 @@ def sqlQuery(year, province, target_area, cwd):
         """ % (data_table, target_area)
 
         for row in cursor.execute(sql):
-            First_date = row[0].strftime('%mM%dD').replace('M', 'ÔÂ').replace('D', 'ÈÕ')
+            First_date = row[0].strftime('%mM%dD').replace('M', 'æœˆ').replace('D', 'æ—¥')
 
-        query_results['First_date'] = First_date # À×±©³õÈÕ
+        query_results['First_date'] = First_date  # é›·æš´åˆæ—¥
 
-        # ************·ÖÊ±¶ÎÍ³¼Æ Ê±¶ÎµØÉÁ´ÎÊıºÍÊ±¶ÎÆ½¾ùÇ¿¶È(¸ºÉÁ)**************
+        # ************åˆ†æ—¶æ®µç»Ÿè®¡ æ—¶æ®µåœ°é—ªæ¬¡æ•°å’Œæ—¶æ®µå¹³å‡å¼ºåº¦(è´Ÿé—ª)**************
         sql = """
-        SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,0 AS Ê±¶Î
+        SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,0 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=0
-        UNION SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS Ê±¶Î
+        UNION SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=1
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=2
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=3
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=4
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=5
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=6
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=7
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=8
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=9
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=10
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=11
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=12
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,13 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,13 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=13
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,14 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,14 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=14
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,15 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,15 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=15
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,16 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,16 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=16
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,17 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,17 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=17
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,18 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,18 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=18
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,19 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,19 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=19
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,20 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,20 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=20
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,21 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,21 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=21
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,22 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,22 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=22
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı, -sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,23 AS Ê±¶Î
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°, -sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,23 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Val(Time_)=23
-        ORDER BY Ê±¶Î
+        ORDER BY æ—¶æ®µ
         """.replace('TARGET_AREA', target_area).replace('QUERY_TABLE', data_table)
 
-        sheet = workbook.Worksheets(u'·ÖÊ±¶ÎÍ³¼Æ')
-        sum_hour_dict = {}  # ¼ÇÂ¼·ÖÊ±¶ÎµØÉÁ×ÜÊı
+        sheet = workbook.Worksheets(u'åˆ†æ—¶æ®µç»Ÿè®¡')
+        sum_hour_dict = {}  # è®°å½•åˆ†æ—¶æ®µåœ°é—ªæ€»æ•°
         Stats_of_Hour = {}
-        i = 1  # ĞĞºÅ
+        i = 1  # è¡Œå·
         for row in cursor.execute(sql):
             i += 1
-            hour = i-2
-            sheet.Cells(i, 2).Value = row[0]  # ¸ºÉÁ´ÎÊı
-            sheet.Cells(i, 5).Value = negative_intensity_hours = row[1] if row[1] is not None else 0  # ¸ºÉÁÇ¿¶È
+            hour = i - 2
+            sheet.Cells(i, 2).Value = row[0]  # è´Ÿé—ªæ¬¡æ•°
+            sheet.Cells(i, 5).Value = negative_intensity_hours = row[1] if row[1] is not None else 0  # è´Ÿé—ªå¼ºåº¦
             sum_hour_dict[hour] = row[0]
             Stats_of_Hour[hour] = [row[0], negative_intensity_hours]
 
-        # ************·ÖÊ±¶ÎÍ³¼Æ Ê±¶ÎµØÉÁ´ÎÊıºÍÊ±¶ÎÆ½¾ùÇ¿¶È(ÕıÉÁ)**************
+        # ************åˆ†æ—¶æ®µç»Ÿè®¡ æ—¶æ®µåœ°é—ªæ¬¡æ•°å’Œæ—¶æ®µå¹³å‡å¼ºåº¦(æ­£é—ª)**************
         sql = """
-        SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,0 AS Ê±¶Î
+        SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,0 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=0
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,1 AS Ê±¶Î
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,1 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=1
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,2 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,2 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=2
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,3 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,3 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=3
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,4 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,4 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=4
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,5 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,5 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=5
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,6 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,6 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=6
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,7 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,7 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=7
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,8 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,8 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=8
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,9 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,9 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=9
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,10 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,10 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=10
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,11 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,11 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=11
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,12 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,12 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=12
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,13 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,13 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=13
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,14 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,14 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=14
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,15 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,15 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=15
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,16 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,16 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=16
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,17 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,17 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=17
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,18 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,18 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=18
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,19 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,19 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=19
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,20 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,20 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=20
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,21 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,21 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=21
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,22 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,22 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=22
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı, sum(Intensity)/count(*) AS Æ½¾ùÇ¿¶È ,23 AS Ê±¶Î
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°, sum(Intensity)/count(*) AS å¹³å‡å¼ºåº¦ ,23 AS æ—¶æ®µ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Val(Time_)=23
-        ORDER BY Ê±¶Î
+        ORDER BY æ—¶æ®µ
         """.replace('TARGET_AREA', target_area).replace('QUERY_TABLE', data_table)
 
-        i = 1  # ĞĞºÅ
+        i = 1  # è¡Œå·
         for row in cursor.execute(sql):
             i += 1
-            hour = i-2
-            sheet.Cells(i, 3).Value = row[0]  # ÕıÉÁ´ÎÊı
-            sheet.Cells(i, 6).Value = positive_intensity_hours = row[1] if row[1] is not None else 0  # ÕıÉÁÇ¿¶È
+            hour = i - 2
+            sheet.Cells(i, 3).Value = row[0]  # æ­£é—ªæ¬¡æ•°
+            sheet.Cells(i, 6).Value = positive_intensity_hours = row[1] if row[1] is not None else 0  # æ­£é—ªå¼ºåº¦
             sum_hour_dict[hour] += row[0]
             Stats_of_Hour[hour].append(row[0])
             Stats_of_Hour[hour].append(positive_intensity_hours)
@@ -539,499 +528,502 @@ def sqlQuery(year, province, target_area, cwd):
 
         query_results['Stats_of_Hour'] = Stats_of_Hour
 
-        #ĞŞ¸Ä±êÌâ
+        # ä¿®æ”¹æ ‡é¢˜
         title = sheet.ChartObjects(1).Chart.ChartTitle.Text
-        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015Äê', year).replace(u'ÉÜĞËÊĞ', target_area)
-        # µ¼³ö·ÖÊ±¶ÎÍ³¼ÆÍ¼
+        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015å¹´', year).replace(u'ç»å…´å¸‚', target_area)
+        # å¯¼å‡ºåˆ†æ—¶æ®µç»Ÿè®¡å›¾
         sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'hour_stats_pic.png']))
 
-        # **********¸ºÉÁÇ¿¶È·Ö²¼**************
+        # **********è´Ÿé—ªå¼ºåº¦åˆ†å¸ƒ**************
         sql = """
-        SELECT count(*) AS ¸ºÉÁ´ÎÊı,0 AS ×ó±ß½ç,5 AS ÓÒ±ß½ç
+        SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,0 AS å·¦è¾¹ç•Œ,5 AS å³è¾¹ç•Œ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=0 AND Abs(Intensity)<5
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,5,10
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,5,10
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=5 AND Abs(Intensity)<10
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,10,15
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,10,15
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=10 AND Abs(Intensity)<15
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,15,20
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,15,20
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=15 AND Abs(Intensity)<20
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,20,25
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,20,25
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=20 AND Abs(Intensity)<25
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,25,30
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,25,30
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=25 AND Abs(Intensity)<30
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,30,35
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,30,35
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=30 AND Abs(Intensity)<35
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,35,40
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,35,40
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=35 AND Abs(Intensity)<40
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,40,45
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,40,45
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=40 AND Abs(Intensity)<45
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,45,50
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,45,50
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=45 AND Abs(Intensity)<50
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,50,55
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,50,55
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=50 AND Abs(Intensity)<55
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,55,60
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,55,60
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=55 AND Abs(Intensity)<60
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,60,65
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,60,65
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=60 AND Abs(Intensity)<65
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,65,70
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,65,70
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=65 AND Abs(Intensity)<70
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,70,75
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,70,75
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=70 AND Abs(Intensity)<75
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,75,80
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,75,80
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=75 AND Abs(Intensity)<80
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,80,85
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,80,85
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=80 AND Abs(Intensity)<85
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,85,90
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,85,90
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=85 AND Abs(Intensity)<90
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,90,95
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,90,95
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=90 AND Abs(Intensity)<95
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,95,100
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,95,100
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=95 AND Abs(Intensity)<100
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,100,150
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,100,150
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=100 AND Abs(Intensity)<150
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,150,200
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,150,200
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=150 AND Abs(Intensity)<200
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,200,250
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,200,250
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=200 AND Abs(Intensity)<250
-        union SELECT count(*) AS ¸ºÉÁ´ÎÊı,250,300
+        union SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,250,300
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=250 AND Abs(Intensity)<300
-        UNION SELECT count(*) AS ¸ºÉÁ´ÎÊı,300,1000
+        UNION SELECT count(*) AS è´Ÿé—ªæ¬¡æ•°,300,1000
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity<0 AND Abs(Intensity)>=300
-        ORDER BY ×ó±ß½ç
+        ORDER BY å·¦è¾¹ç•Œ
         """.replace('TARGET_AREA', target_area).replace("QUERY_TABLE", data_table)
 
         Stats_of_Intensity = {}
-        sheet = workbook.Worksheets(u'Ç¿¶È·Ö²¼Í³¼Æ')
-        i = 1  # ĞĞºÅ
+        sheet = workbook.Worksheets(u'å¼ºåº¦åˆ†å¸ƒç»Ÿè®¡')
+        i = 1  # è¡Œå·
         for row in cursor.execute(sql):
             i += 1
-            sheet.Cells(i, 3).Value =  row[0]  # ¸ºÉÁ´ÎÊı
-            Stats_of_Intensity[i-2] = [row[0]]
+            sheet.Cells(i, 3).Value = row[0]  # è´Ÿé—ªæ¬¡æ•°
+            Stats_of_Intensity[i - 2] = [row[0]]
 
-        # ***********ÕıÉÁÇ¿¶È·Ö²¼************
+        # ***********æ­£é—ªå¼ºåº¦åˆ†å¸ƒ************
         sql = """
-        SELECT count(*) AS ÕıÉÁ´ÎÊı,0 AS ×ó±ß½ç,5 AS ÓÒ±ß½ç
+        SELECT count(*) AS æ­£é—ªæ¬¡æ•°,0 AS å·¦è¾¹ç•Œ,5 AS å³è¾¹ç•Œ
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=0 AND Intensity<5
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,5,10
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,5,10
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=5 AND Intensity<10
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,10,15
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,10,15
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=10 AND Intensity<15
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,15,20
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,15,20
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=15 AND Intensity<20
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,20,25
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,20,25
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=20 AND Intensity<25
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,25,30
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,25,30
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=25 AND Intensity<30
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,30,35
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,30,35
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=30 AND Intensity<35
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,35,40
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,35,40
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=35 AND Intensity<40
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,40,45
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,40,45
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=40 AND Intensity<45
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,45,50
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,45,50
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=45 AND Intensity<50
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,50,55
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,50,55
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=50 AND Intensity<55
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,55,60
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,55,60
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=55 AND Intensity<60
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,60,65
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,60,65
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=60 AND Intensity<65
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,65,70
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,65,70
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=65 AND Intensity<70
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,70,75
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,70,75
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=70 AND Intensity<75
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,75,80
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,75,80
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=75 AND Intensity<80
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,80,85
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,80,85
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=80 AND Intensity<85
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,85,90
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,85,90
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=85 AND Intensity<90
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,90,95
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,90,95
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=90 AND Intensity<95
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,95,100
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,95,100
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=95 AND Intensity<100
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,100,150
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,100,150
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=100 AND Intensity<150
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,150,200
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,150,200
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=150 AND Intensity<200
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,200,250
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,200,250
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=200 AND Intensity<250
-        union SELECT count(*) AS ÕıÉÁ´ÎÊı,250,300
+        union SELECT count(*) AS æ­£é—ªæ¬¡æ•°,250,300
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=250 AND Intensity<300
-        UNION SELECT count(*) AS ÕıÉÁ´ÎÊı,300,1000
+        UNION SELECT count(*) AS æ­£é—ªæ¬¡æ•°,300,1000
         FROM QUERY_TABLE
         WHERE Region='TARGET_AREA' AND Intensity>=300
-        ORDER BY ×ó±ß½ç
+        ORDER BY å·¦è¾¹ç•Œ
         """.replace('TARGET_AREA', target_area).replace("QUERY_TABLE", data_table)
 
-        i = 1  # ĞĞºÅ
+        i = 1  # è¡Œå·
         for row in cursor.execute(sql):
             i += 1
-            sheet.Cells(i, 4).Value = row[0]  # ÕıÉÁ´ÎÊı
-            Stats_of_Intensity[i-2].append(row[0])
+            sheet.Cells(i, 4).Value = row[0]  # æ­£é—ªæ¬¡æ•°
+            Stats_of_Intensity[i - 2].append(row[0])
 
         for i in range(25):
-            Stats_of_Intensity[i].append(sheet.Cells(i+2,6).Value)
-            Stats_of_Intensity[i].append(sheet.Cells(i+2,7).Value)
+            Stats_of_Intensity[i].append(sheet.Cells(i + 2, 6).Value)
+            Stats_of_Intensity[i].append(sheet.Cells(i + 2, 7).Value)
 
         query_results['Stats_of_Intensity'] = Stats_of_Intensity
-        #ĞŞ¸Ä±êÌâ
+        # ä¿®æ”¹æ ‡é¢˜
         title = sheet.ChartObjects(1).Chart.ChartTitle.Text
-        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015Äê', year).replace(u'ÉÜĞËÊĞ', target_area)
+        sheet.ChartObjects(1).Chart.ChartTitle.Text = title.replace(u'2015å¹´', year).replace(u'ç»å…´å¸‚', target_area)
         title = sheet.ChartObjects(2).Chart.ChartTitle.Text
-        sheet.ChartObjects(2).Chart.ChartTitle.Text = title.replace(u'2015Äê', year).replace(u'ÉÜĞËÊĞ', target_area)
-        # µ¼³ö·ÖÇ¿¶ÈÍ³¼ÆÍ¼
+        sheet.ChartObjects(2).Chart.ChartTitle.Text = title.replace(u'2015å¹´', year).replace(u'ç»å…´å¸‚', target_area)
+        # å¯¼å‡ºåˆ†å¼ºåº¦ç»Ÿè®¡å›¾
         sheet.ChartObjects(1).Chart.Export(''.join([local_path, '/', 'negative_stats_pic.png']))
         sheet.ChartObjects(2).Chart.Export(''.join([local_path, '/', 'positive_stats_pic.png']))
 
-        f = open(os.path.join(workspath, 'sum_target_area_for_next_year.pkl'), 'wb')
-        pickle.dump(Sum_target_area, f, 2)#²»ÄÜ²ÉÓÃ×î¸ßµÄĞ­Òé£¬·ñÔòÔÚpython2.7.8ÖĞÎŞ·¨¼ÓÔØ½øÀ´
+        f = open(os.path.join(workspath, 'query_results.pkl'), 'wb')
+        pickle.dump(query_results, f, 2)  # ä¸èƒ½é‡‡ç”¨æœ€é«˜çš„åè®®ï¼Œå¦åˆ™åœ¨python2.7.8ä¸­æ— æ³•åŠ è½½è¿›æ¥
         f.close()
 
     finally:
-        db.close()  # ¹Ø±ÕÊı¾İÁ¬½Ó
-        workbook.Save()  # ±£´æEXCEL¹¤×÷±¡
-        workbook.Close()  # ¹Ø±Õ¹¤×÷±¡ÎÄ¼ş
-        excel.Quit()  # ¹Ø±ÕEXCELÓ¦ÓÃ³ÌĞò
+        db.close()  # å…³é—­æ•°æ®è¿æ¥
 
     return query_results
 
-def docProcess(year, province, target_area, cwd):
 
-    query_results = sqlQuery(year, province, target_area, cwd)
+def docProcess(word, doc, workbook, query_results, year, province, target_area, cwd):
+    sum_target_area = query_results['Sum_target_area']  # æœ¬åœ°åŒºåœ°é—ªæ€»æ•°
+    sum_rank_in_province = query_results['Sum_rank_in_province']  # æœ¬åœ°åŒºåœ°é—ªæ€»æ•°åœ¨å…¨çœæ’å
+    density_province = query_results['Density_province']  # å…¨çœå¯†åº¦
+    density_target_area = query_results['Density_target_area']  # æœ¬åœ°åŒºå¯†åº¦
+    density_rank_in_province = query_results['Density_rank_in_province']  # æœ¬åœ°åŒºå¯†åº¦åœ¨å…¨çœæ’å
+    stats_of_region = query_results['Stats_of_Region']  # åˆ†å¿å¸‚ç»Ÿè®¡
+    day_target_area = stats_of_region[u'æ€»è®¡'][4]  # å¹³å‡é›·æš´æ—¥
+    day_max_target = stats_of_region[u'æ€»è®¡'][5]  # æœ€å¤§é›·æš´æ—¥
+    day_min_target = stats_of_region[u'æ€»è®¡'][6]  # æœ€å°é›·æš´æ—¥
 
-    # ´ò¿ªwordÎÄµµ
+    sum_max_county_name = query_results['Sum_max_county_name']  # é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿å
+    sum_max_in_region = query_results['Sum_max_in_region']  # é—ªç”µæ¬¡æ•°æœ€å¤šçš„å¿æ¬¡æ•°
+    sum_min_county_name = query_results['Sum_min_county_name']  # é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿å
+    sum_min_in_region = query_results['Sum_min_in_region']  # é—ªç”µæ¬¡æ•°æœ€å°‘çš„å¿æ¬¡æ•°
+    density_max_county_name = query_results['Density_max_county_name']  # é—ªç”µå¯†åº¦æœ€å¤šçš„å¿å
+    density_max_in_region = query_results['Density_max_in_region']  # é—ªç”µå¯†åº¦æœ€å¤šçš„å¿å¯†åº¦
+    density_min_county_name = query_results['Density_min_county_name']  # é—ªç”µå¯†åº¦æœ€å°‘çš„å¿å
+    density_min_in_region = query_results['Density_min_in_region']  # é—ªç”µå¯†åº¦æœ€å°‘çš„å¿å¯†åº¦
+    max_region_percent = query_results['Max_region_percent']  # åœ°é—ªæ¬¡æ•°æœ€å¤§å¿æ‰€å æ¯”ä¾‹
+    min_region_percent = query_results['Min_region_percent']  # åœ°é—ªæ¬¡æ•°æœ€å°å¿æ‰€å æ¯”ä¾‹
+
+    peak_month_negative_intensity = query_results['Peak_month_negative_intensity']  # æ­£é—ªå³°å€¼æœˆä»½
+    peak_month_positive_intensity = query_results['Peak_month_positive_intensity']  # è´Ÿé—ªå³°å€¼æœˆä»½
+    max_month_region = query_results['Max_month_region']  # åœ°é—ªæ¬¡æ•°æœ€å¤šçš„æœˆä»½
+    max_three_months = query_results['Max_three_months']  # åœ°é—ªæ¬¡æ•°æœ€å¤šçš„ä¸‰ä¸ªæœˆ
+    max_months_percent = query_results['Max_months_percent']  # åœ°é—ªæ¬¡æ•°æœ€å¤šä¸‰ä¸ªæœˆæ‰€å æ¯”ä¾‹
+    months_zero = query_results['Months_zero']  # æ²¡æœ‰æ£€æµ‹åˆ°åœ°é—ªçš„æœˆä»½
+    stats_of_Month = query_results['Stats_of_Month']  # åˆ†æœˆç»Ÿè®¡ï¼Œè´Ÿé—ªæ¬¡æ•°ã€è´Ÿé—ªå¼ºåº¦ã€æ­£é—ªæ¬¡æ•°ã€æ­£é—ªå¼ºåº¦ã€æ€»æ¬¡æ•°
+    first_date = query_results['First_date']  # é›·æš´åˆæ—¥
+
+    stats_of_province = query_results[u'Stats_of_Province']
+
+    # ******é¡µçœ‰é¡µè„šå¤„ç†*******
+    # è®¾ç½®é¦–é¡µã€å¥‡å¶é¡µçš„é¡µçœ‰é¡µè„šå…¨éƒ¨ä¸€æ ·
+    doc.PageSetup.DifferentFirstPageHeaderFooter = False
+    doc.PageSetup.OddAndEvenPagesHeaderFooter = False
+    # æ•´ä½“æ›¿æ¢é¡µçœ‰
+    header = doc.Sections(2).Headers(1).Range
+    header.Find.ClearFormatting()
+    header.Find.Replacement.ClearFormatting()
+    header.Find.Execute(u'2015å¹´', False, False, False, False, False, True, 1, False, year, 2)
+    header.Find.Execute(u'ç»å…´å¸‚', False, False, False, False, False, True, 1, False, target_area, 2)
+    # æ•´ä½“æ›¿æ¢é¡µè„š
+    footer = doc.Sections(2).Footers(1).Range
+    footer.Find.ClearFormatting()
+    footer.Find.Replacement.ClearFormatting()
+    footer.Find.Execute(u'2015å¹´', False, False, False, False, False, True, 1, False, year, 2)
+    footer.Find.Execute(u'ç»å…´å¸‚', False, False, False, False, False, True, 1, False, target_area, 2)
+
+
+    word.Selection.Find.ClearFormatting()
+    word.Selection.Find.Replacement.ClearFormatting()
+    word.Selection.Find.Execute(u'2016å¹´',False, False, False, False, False, True, 1, True, year,2)
+
+    # ******æ›¿æ¢å›¾ç‰‡*********
+    word.Selection.Find.Execute(FindText=u'å›¾1-1 åœ°é—ªå¯†åº¦ç©ºé—´åˆ†å¸ƒå›¾', Wrap=1)
+    word.Selection.MoveLeft(Count=3)
+    doc.InlineShapes(2).Delete()
+    densityPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
+                          year, target_area, u'é—ªç”µå¯†åº¦ç©ºé—´åˆ†å¸ƒ.png'])
+    word.Selection.InlineShapes.AddPicture(densityPic)
+
+    word.Selection.Find.Execute(FindText=u'å›¾1-2 åœ°é—ªé›·æš´æ—¥ç©ºé—´åˆ†å¸ƒå›¾', Wrap=1)
+    word.Selection.MoveLeft(Count=3)
+    doc.InlineShapes(3).Delete()
+    dayPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
+                      year, target_area, u'åœ°é—ªé›·æš´æ—¥ç©ºé—´åˆ†å¸ƒ.png'])
+    word.Selection.InlineShapes.AddPicture(dayPic)
+
+    # åœ¨wordä¸­å®šä½
+    word.Selection.Find.Execute(FindText=u'å›¾1-3 åœ°é—ªåˆ†æœˆç»Ÿè®¡', Wrap=1)
+    word.Selection.MoveLeft(Count=3)
+    # åˆ é™¤åŸæœ‰å›¾è¡¨
+    doc.InlineShapes(4).Delete()
+    # å¤åˆ¶Excelä¸­å›¾è¡¨
+    sheet = workbook.Worksheets(u'åˆ†æœˆç»Ÿè®¡')
+    sheet.ChartObjects(1).Chart.ChartArea.Copy()
+    # åœ¨wordä¸­ç²˜è´´
+    word.Selection.PasteAndFormat(1)  # wdChartLinked
+
+    word.Selection.Find.Execute(FindText=u'å›¾1-4 åœ°é—ªåˆ†æ—¶æ®µç»Ÿè®¡', Wrap=1)
+    word.Selection.MoveLeft(Count=3)
+    doc.InlineShapes(5).Delete()
+    sheet = workbook.Worksheets(u'åˆ†æ—¶æ®µç»Ÿè®¡')
+    sheet.ChartObjects(1).Chart.ChartArea.Copy()
+    word.Selection.PasteAndFormat(1)  # wdChartLinked
+
+    word.Selection.Find.Execute(FindText=u'å›¾1-5 è´Ÿåœ°é—ªå¼ºåº¦åˆ†å¸ƒ', Wrap=1)
+    word.Selection.MoveLeft(Count=3)
+    doc.InlineShapes(6).Delete()
+    sheet = workbook.Worksheets(u'å¼ºåº¦åˆ†å¸ƒç»Ÿè®¡')
+    sheet.ChartObjects(1).Chart.ChartArea.Copy()
+    word.Selection.PasteAndFormat(1)  # wdChartLinked
+
+    word.Selection.Find.Execute(FindText=u'å›¾ 1-6 æ­£åœ°é—ªå¼ºåº¦åˆ†å¸ƒ', Wrap=1)
+    word.Selection.MoveLeft(Count=3)
+    doc.InlineShapes(7).Delete()
+    sheet.ChartObjects(2).Chart.ChartArea.Copy()
+    word.Selection.PasteAndFormat(1)  # wdChartLinked
+
+    # ************å¤„ç†è¡¨æ ¼**************
+    if province == u'æµ™æ±Ÿ':
+        regions = [u'æ­å·', u'å®æ³¢', u'æ¹–å·', u'å˜‰å…´', u'ç»å…´', u'é‡‘å', u'å°å·', u'æ¸©å·', u'è¡¢å·', u'ä¸½æ°´', u'èˆŸå±±', u'æ€»è®¡']
+        countries = [u'è¶ŠåŸåŒº', u'æŸ¯æ¡¥åŒº', u'ä¸Šè™åŒº', u'è¯¸æš¨å¸‚', u'åµŠå·å¸‚', u'æ–°æ˜Œå¿', u'æ€»è®¡']
+        n_regions = len(regions)
+        n_countries = len(countries)
+
+        table_region = doc.Tables(1)
+        for i in range(n_countries):
+            table_region.Cell(2, i + 2).Range.Text = str(stats_of_region[countries[i]][0])  # åœ°é—ªæ¬¡æ•°
+            table_region.Cell(3, i + 2).Range.Text = str(stats_of_region[countries[i]][1])  # å¹³å‡åœ°é—ªå¯†åº¦
+            table_region.Cell(4, i + 2).Range.Text = str(stats_of_region[countries[i]][4])  # å¹³å‡é›·æš´æ—¥
+
+        table_province = doc.Tables(2)
+        for i in range(n_regions):
+            for j in range(2):
+                table_province.Cell(j + 2, i + 2).Range.Text = str(stats_of_province[regions[i]][j])
+
+    elif province == u'æ²³å—':
+        regions = [u'éƒ‘å·', u'å¼€å°', u'æ´›é˜³', u'å¹³é¡¶å±±', u'å®‰é˜³', u'é¹¤å£', u'æ–°ä¹¡', u'ç„¦ä½œ', u'æ¿®é˜³',
+                   u'è®¸æ˜Œ', u'æ¼¯æ²³', u'ä¸‰é—¨å³¡', u'å•†ä¸˜', u'å‘¨å£', u'é©»é©¬åº—', u'å—é˜³', u'ä¿¡é˜³', u'æµæº', u'æ€»è®¡']
+        countries = [u'å¸‚åŒº', u'æ–°ä¹¡å¿', u'è¾‰å¿å¸‚', u'å«è¾‰å¸‚', u'è·å˜‰å¿', u'åŸé˜³å¿', u'å»¶æ´¥å¿', u'å°ä¸˜å¿', u'é•¿å£å¿', u'æ€»è®¡']
+        n_regions = len(regions)
+        n_countries = len(countries)
+
+        table_region = doc.Tables(1)
+        for i in range(n_countries):
+            table_region.Cell(2, i + 2).Range.Text = str(stats_of_region[countries[i]][0])  # åœ°é—ªæ¬¡æ•°
+            table_region.Cell(3, i + 2).Range.Text = str(stats_of_region[countries[i]][1])  # å¹³å‡åœ°é—ªå¯†åº¦
+            table_region.Cell(4, i + 2).Range.Text = str(stats_of_region[countries[i]][4])  # å¹³å‡é›·æš´æ—¥
+
+        table_province = doc.Tables(2)
+        for i in range(10):
+            for j in range(2):
+                table_province.Cell(j + 2, i + 2).Range.Text = str(stats_of_province[regions[i]][j])
+        table_province_xu = doc.Tables(3)
+        for i in range(9):
+            for j in range(2):
+                table_province_xu.Cell(j + 2, i + 2).Range.Text = str(stats_of_province[regions[i + 10]][j])
+
+    # ****************æ®µè½æ–‡å­—å¤„ç†*******************
+    # å¤„ç†ä¸å»å¹´çš„å¯¹æ¯”æƒ…å†µ
+    query_results_path = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb/', 'query_results.pkl'])
+    last_year_query_results_path = query_results_path.replace(year, str(int(year[:-1]) - 1) + u'å¹´')
+    if os.path.exists(last_year_query_results_path):
+        f = open(last_year_query_results_path, 'rb')
+        sum_target_area_last_year = (pickle.load(f))['Sum_target_area']
+        f.close()
+
+        rate = (sum_target_area - sum_target_area_last_year) / float(sum_target_area_last_year)
+
+        if 0.05 <= rate < 0.1:
+            compare = u'ç•¥æœ‰å¢å¤š'
+        elif 0.1 <= rate < 0.3:
+            compare = u'æœ‰æ‰€å¢å¤š'
+        elif 0.3 <= rate < 0.9:
+            compare = u'å¢å¹…è¾ƒå¤§'
+        elif 0.9 <= rate:
+            compare = u'å¤§å¹…å¢å¤š'
+
+        elif -0.1 < rate <= -0.05:
+            compare = u'ç•¥æœ‰å‡å°‘'
+        elif -0.3 < rate <= -0.1:
+            compare = u'æœ‰æ‰€å‡å°‘'
+        elif -0.9 < rate <= -0.3:
+            compare = u'å‡å¹…è¾ƒå¤§'
+        elif rate <= -0.9:
+            compare = u'å¤§å¹…å‡å°‘'
+        else:
+            compare = u'åŸºæœ¬æŒå¹³'
+
+        compare_with_last_year = u'ä¸ä¸Šå¹´çš„åœ°é—ª%dæ¬¡ç›¸æ¯”ï¼Œ%sã€‚' % (sum_target_area_last_year, compare)
+    else:
+        compare_with_last_year = ''
+
+    if density_target_area > density_province:
+        compare_with_province = u'é«˜äº'
+    else:
+        compare_with_province = u'ä½äº'
+
+    p1 = u'%sæˆ‘å¸‚å…±å‘ç”Ÿåœ°é—ª%dæ¬¡ï¼Œå¹³å‡åœ°é—ªå¯†åº¦%.2fæ¬¡/kmÂ²ï¼Œå¹³å‡é›·æš´æ—¥%då¤©ï¼ˆè§è¡¨1-1ï¼‰ã€‚%s\
+ä»æ—¶é—´åˆ†å¸ƒæ¥çœ‹ï¼Œåœ°é—ªä¸»è¦é›†ä¸­åœ¨%dã€%dã€%dæœˆï¼Œä¸‰ä¸ªæœˆåœ°é—ªå å…¨å¹´æ€»åœ°é—ªæ¬¡æ•°çš„%.2f%%ã€‚ä»ç©ºé—´åˆ†å¸ƒæ¥çœ‹ï¼Œ%så‘ç”Ÿåœ°é—ªæ¬¡æ•°æœ€å¤šï¼Œ%sæœ€å°‘ã€‚\
+å…¨å¸‚åœ°é—ªå¹³å‡å¯†åº¦%så…¨çœå¹³å‡çš„%.2fæ¬¡/kmÂ²ï¼Œåœ¨å…¨çœå„å¸‚ä¸­%sé—ªæ¬¡æ•°æ’ç¬¬%dä½ï¼Œåœ°é—ªå¹³å‡å¯†åº¦æ’ç¬¬%dä½ï¼ˆè§è¡¨1-2ï¼‰ã€‚' % (
+        year, sum_target_area, density_target_area, day_target_area, compare_with_last_year,
+        max_three_months[0], max_three_months[1], max_three_months[2], max_months_percent,
+        sum_max_county_name, sum_min_county_name, compare_with_province, density_province,
+        target_area, sum_rank_in_province, density_rank_in_province)
+
+    p2 = u'æ®ä¸å®Œå…¨ç»Ÿè®¡ï¼Œ2016å¹´å…¨å¸‚å› é›·ç”µå¼•å‘çš„ç¾å®³å…±148èµ·ï¼Œæ— äººå‘˜ä¼¤äº¡äº‹æ•…ã€‚\
+é€ æˆç›´æ¥ç»æµæŸå¤±è¾¾7788.04ä¸‡å…ƒï¼Œé—´æ¥ç»æµæŸå¤±677.42ä¸‡å…ƒã€‚'
+
+    p3 = u'ä»åœ°åŒºç»Ÿè®¡æ¥çœ‹ï¼Œåœ°åŒºåˆ†å¸ƒç›¸å¯¹ä¸å‡ï¼Œ%såœ°é—ªæ¬¡æ•°æœ€å¤šï¼Œå…±%dæ¬¡ï¼Œ%sæœ€å°‘ï¼Œåªæœ‰%dæ¬¡ï¼Œ\
+ä¸¤è€…åˆ†åˆ«å å…¨å¸‚æ€»åœ°é—ªæ•°çš„%.2f%%å’Œ%.2f%%ã€‚ä»å¹³å‡å¯†åº¦ç»Ÿè®¡æ¥çœ‹ï¼Œ%så¯†åº¦æœ€é«˜ï¼Œä¸º%.2fæ¬¡/kmÂ²ï¼Œ\
+%sæœ€ä½ï¼Œä¸º%.2fæ¬¡/kmÂ²ï¼ˆè§è¡¨1-1ï¼‰ã€‚' % (sum_max_county_name, sum_max_in_region, sum_min_county_name, sum_min_in_region,
+                            max_region_percent, min_region_percent,
+                            density_max_county_name, density_max_in_region,
+                            density_min_county_name, density_min_in_region)
+
+    p4 = u'ä»åœ°é—ªå¯†åº¦ç©ºé—´åˆ†å¸ƒå›¾ä¸Šï¼ˆè§å›¾1-1ï¼‰å¯ä»¥çœ‹å‡ºï¼Œè¯¸æš¨è¥¿åŒ—éƒ¨ã€åµŠå·å’Œè¯¸æš¨äº¤ç•ŒåŒºåŸŸåœ°é—ªå¯†åº¦è¾ƒé«˜ï¼Œ\
+æœ€é«˜è¶…è¿‡5æ¬¡/kmÂ²ã€‚æ–°æ˜Œä¸œéƒ¨æœ‰éƒ¨åˆ†åœ°åŒºï¼Œåœ°é—ªå¯†åº¦è¶…è¿‡3æ¬¡/kmÂ²ï¼Œå…¨å¸‚å¤§éƒ¨åˆ†åœ°åŒºåœ°é—ªå¯†åº¦å°äº2æ¬¡/kmÂ²ã€‚'
+
+    p5 = u'ç°è¡Œå›½å®¶æ ‡å‡†æ‰€å¼•ç”¨çš„é›·æš´æ—¥æŒ‡äººå·¥è§‚æµ‹ï¼ˆæµ‹ç«™å‘¨å›´çº¦15kmåŠå¾„åŸŸé¢ï¼‰æœ‰é›·æš´å¤©æ•°çš„å¤šå¹´å¹³å‡ã€‚\
+æ ¹æ®æˆ‘çœé—ªç”µå®šä½ç›‘æµ‹èµ„æ–™æ¨ç®—ï¼ˆä»¥15kmä¸ºé—´éš”ï¼Œåˆ†åˆ«ç»Ÿè®¡å„ç‚¹15kmåŠå¾„èŒƒå›´å†…çš„é›·æš´æ—¥ï¼Œå†æ’å€¼æ¨ç®—ï¼‰ï¼Œ\
+%så…¨å¸‚åœ°é—ªé›·æš´æ—¥å¹³%då¤©ï¼Œæœ€ä½ä¸º%då¤©ï¼Œæœ€é«˜%då¤©ã€‚ç©ºé—´åˆ†å¸ƒä¸Šæ¥çœ‹ï¼ŒåŒ—éƒ¨å¹³åŸåœ°åŒºé›·æš´æ—¥è¾ƒå°‘ï¼Œ\
+è¥¿å—å¤§éƒ¨å’Œä¸œå—éƒ¨åˆ†åŒºåŸŸé›·æš´å¤©æ•°è¾ƒå¤šï¼ˆè§å›¾1-2ï¼‰ã€‚' % (year, day_target_area, day_min_target, day_max_target)
+
+    if len(months_zero) == 0:
+        months_zero_description = u''
+    elif len(months_zero) == 1:
+        months_zero_description = u'%dæœˆæœªç›‘æµ‹åˆ°åœ°é—ªï¼Œ' % months_zero[0]
+    elif len(months_zero) == 2:
+        months_zero_description = u'%dæœˆå’Œ%dæœˆæœªç›‘æµ‹åˆ°åœ°é—ªï¼Œ' % (months_zero[0], months_zero[1])
+    else:
+        s = u'æœˆã€'.join(map(lambda d: str(d), months_zero[:len(months_zero) - 1]))
+        months_zero_description = u''.join([s, u'æœˆå’Œ%dæœˆéƒ½æœªç›‘æµ‹åˆ°åœ°é—ªï¼Œ' % months_zero[-1]])
+
+    p6 = u'%s%sé›·ç”µåˆæ—¥ä¸º%sã€‚ä»åˆ†æœˆç»Ÿè®¡æ¥çœ‹ï¼Œåœ°é—ªæ¬¡æ•°éšæœˆä»½å‘ˆç°è¿‘ä¼¼æ­£æ€åˆ†å¸ƒç‰¹å¾ï¼Œ%s\
+åœ°é—ªæ¬¡æ•°å³°å€¼å‡ºç°åœ¨%dæœˆï¼Œ%dã€%dã€%dæœˆæ˜¯é›·æš´é«˜å‘çš„æœˆä»½ï¼Œä¸‰ä¸ªæœˆåœ°é—ªæ¬¡æ•°å æ€»æ•°çš„%.2f%%ã€‚\
+æ­£ã€è´Ÿåœ°é—ªå¹³å‡å¼ºåº¦çš„å³°å€¼åˆ†åˆ«åœ¨%dæœˆå’Œ%dæœˆï¼Œå…¶ä»–æœˆä»½æ³¢åŠ¨å¹³ç¼“(è§å›¾1-3) ã€‚' % (year, target_area,
+                                             first_date, months_zero_description,
+                                             max_month_region, max_three_months[0], max_three_months[1],
+                                             max_three_months[2],
+                                             max_months_percent,
+                                             peak_month_positive_intensity, peak_month_negative_intensity)
+
+    p7 = u'ä»åˆ†æ—¶æ®µç»Ÿè®¡æ¥çœ‹ï¼Œåœ°é—ªæ¬¡æ•°å³°å€¼å‡ºç°åœ¨ç¬¬18ä¸ªæ—¶æ®µï¼ˆ17:00-18:00ï¼‰ï¼Œåœ°é—ªä¸»è¦é›†ä¸­åœ¨åˆåä¸¤ç‚¹åˆ°æ™šä¸Šä¹ç‚¹ï¼Œ\
+ä¸ƒä¸ªæ—¶æ®µå†…çš„åœ°é—ªæ¬¡æ•°å æ€»æ•°çš„d%ã€‚åœ°é—ªå¹³å‡å¼ºåº¦éšæ—¶é—´å‘ˆæ³¢çŠ¶èµ·ä¼ç‰¹å¾ï¼Œä½†æ€»ä½“æ³¢åŠ¨ä¸å¤§ã€‚\
+æ­£é—ªå¹³å‡å¼ºåº¦å³°å€¼åœ¨ç¬¬7ä¸ªæ—¶æ®µï¼ˆ7:00-8:00ï¼‰ï¼Œè´Ÿé—ªå¹³å‡å¼ºåº¦å³°å€¼åœ¨ç¬¬11ä¸ªæ—¶æ®µï¼ˆ11:00-12:00ï¼‰(è§å›¾1-4)ã€‚'
+
+    p8 = u'ç”±æ­£ã€è´Ÿåœ°é—ªå¼ºåº¦åˆ†å¸ƒå›¾å¯è§ï¼Œåœ°é—ªæ¬¡æ•°éšåœ°é—ªå¼ºåº¦å‘ˆè¿‘ä¼¼æ­£æ€åˆ†å¸ƒç‰¹å¾ã€‚æ­£åœ°é—ªä¸»è¦é›†ä¸­åœ¨5-60kAå†…ï¼ˆè§å›¾1-5ï¼‰ï¼Œ\
+è¯¥åŒºé—´å†…æ­£åœ°é—ªæ¬¡æ•°çº¦å æ€»åœ°é—ªçš„87.20%ï¼Œè´Ÿåœ°é—ªä¸»è¦åˆ†å¸ƒåœ¨5-60kAå†…ï¼ˆè§å›¾1-6ï¼‰ï¼Œ\
+è¯¥åŒºé—´å†…è´Ÿåœ°é—ªæ¬¡æ•°çº¦å æ€»è´Ÿåœ°é—ªçš„91.46%ã€‚'
+
+    paragraphs = [p1, p2, p3, p4, p5, p6, p7, p8]
+    for i in range(8):
+        word.Selection.Find.Execute(FindText=u'#æ®µè½%d#' % (i + 1), Wrap=1)
+        word.Selection.TypeText(Text=paragraphs[i])
+
+
+def mainProcess(year, province, target_area, cwd):
+    # æ‰“å¼€Excelåº”ç”¨ç¨‹åº
+    excel = DispatchEx('Excel.Application')
+    excel.Visible = False
+    # æ‰“å¼€æ–‡ä»¶ï¼Œå³Excelå·¥ä½œè–„
+    charts_origin = ''.join([cwd, u'/data/', u'å…¬æŠ¥å›¾è¡¨æ¨¡æ¿.xlsx'])
+    charts = ''.join([cwd, u'/temp/', province, '/', year, '/', target_area, '.gdb/',
+                      year, target_area, u'å…¬æŠ¥ç»Ÿè®¡å›¾è¡¨.xlsx'])
+
+    shutil.copy2(charts_origin, charts)
+    workbook = excel.Workbooks.Open(charts)
+
+    # æ‰“å¼€wordæ–‡æ¡£
     EnsureDispatch('Word.Application')
     word = DispatchEx('Word.Application')
     word.Visible = False
 
-    doc_origin = ''.join([cwd, u'/data/', u'¹«±¨ÎÄµµÄ£°å_%s.docx'%target_area])
+    doc_origin = ''.join([cwd, u'/data/', u'å…¬æŠ¥æ–‡æ¡£æ¨¡æ¿_%s.docx' % target_area])
     doc = ''.join([cwd, u'/temp/', province, '/', year, '/', target_area, '.gdb/',
-                   year, target_area, u'¹«±¨ÎÄµµ.docx'])
+                   year, target_area, u'å…¬æŠ¥æ–‡æ¡£.docx'])
 
-    #if not os.path.exists(doc):
+    # if not os.path.exists(doc):
     shutil.copy2(doc_origin, doc)
-
     doc = word.Documents.Open(doc)
 
-    # ´ò¿ªExcelÓ¦ÓÃ³ÌĞò
-    excel = DispatchEx('Excel.Application')
-    excel.Visible = False
-    # ´ò¿ªÎÄ¼ş£¬¼´Excel¹¤×÷±¡
-    charts = ''.join([cwd,u'/temp/', province,'/', year, '/', target_area,'.gdb/',
-                      year,target_area,u'¹«±¨Í³¼ÆÍ¼±í.xlsx'])
-    workbook = excel.Workbooks.Open(charts)
-
-    sum_target_area = query_results['Sum_target_area']  # ±¾µØÇøµØÉÁ×ÜÊı
-    sum_rank_in_province = query_results['Sum_rank_in_province']  # ±¾µØÇøµØÉÁ×ÜÊıÔÚÈ«Ê¡ÅÅÃû
-    density_province = query_results['Density_province']  # È«Ê¡ÃÜ¶È
-    density_target_area = query_results['Density_target_area']  # ±¾µØÇøÃÜ¶È
-    density_rank_in_province = query_results['Density_rank_in_province']  # ±¾µØÇøÃÜ¶ÈÔÚÈ«Ê¡ÅÅÃû
-    stats_of_region = query_results['Stats_of_Region']  # ·ÖÏØÊĞÍ³¼Æ
-    day_target_area = stats_of_region[u'×Ü¼Æ'][4] #Æ½¾ùÀ×±©ÈÕ
-    day_max_target = stats_of_region[u'×Ü¼Æ'][5] #×î´óÀ×±©ÈÕ
-    day_min_target = stats_of_region[u'×Ü¼Æ'][6] #×îĞ¡À×±©ÈÕ
-
-    sum_max_county_name = query_results['Sum_max_county_name']  # ÉÁµç´ÎÊı×î¶àµÄÏØÃû
-    sum_max_in_region = query_results['Sum_max_in_region']  # ÉÁµç´ÎÊı×î¶àµÄÏØ´ÎÊı
-    sum_min_county_name = query_results['Sum_min_county_name']  # ÉÁµç´ÎÊı×îÉÙµÄÏØÃû
-    sum_min_in_region = query_results['Sum_min_in_region']  # ÉÁµç´ÎÊı×îÉÙµÄÏØ´ÎÊı
-    density_max_county_name = query_results['Density_max_county_name']  # ÉÁµçÃÜ¶È×î¶àµÄÏØÃû
-    density_max_in_region = query_results['Density_max_in_region']  # ÉÁµçÃÜ¶È×î¶àµÄÏØÃÜ¶È
-    density_min_county_name = query_results['Density_min_county_name']  # ÉÁµçÃÜ¶È×îÉÙµÄÏØÃû
-    density_min_in_region = query_results['Density_min_in_region']  # ÉÁµçÃÜ¶È×îÉÙµÄÏØÃÜ¶È
-    max_region_percent = query_results['Max_region_percent']  # µØÉÁ´ÎÊı×î´óÏØËùÕ¼±ÈÀı
-    min_region_percent = query_results['Min_region_percent']  # µØÉÁ´ÎÊı×îĞ¡ÏØËùÕ¼±ÈÀı
-
-    peak_month_negative_intensity = query_results['Peak_month_negative_intensity']  # ÕıÉÁ·åÖµÔÂ·İ
-    peak_month_positive_intensity = query_results['Peak_month_positive_intensity']  # ¸ºÉÁ·åÖµÔÂ·İ
-    max_month_region = query_results['Max_month_region']  # µØÉÁ´ÎÊı×î¶àµÄÔÂ·İ
-    max_three_months = query_results['Max_three_months']  # µØÉÁ´ÎÊı×î¶àµÄÈı¸öÔÂ
-    max_months_percent = query_results['Max_months_percent']  # µØÉÁ´ÎÊı×î¶àÈı¸öÔÂËùÕ¼±ÈÀı
-    months_zero = query_results['Months_zero']  # Ã»ÓĞ¼ì²âµ½µØÉÁµÄÔÂ·İ
-    stats_of_Month = query_results['Stats_of_Month']  # ·ÖÔÂÍ³¼Æ£¬¸ºÉÁ´ÎÊı¡¢¸ºÉÁÇ¿¶È¡¢ÕıÉÁ´ÎÊı¡¢ÕıÉÁÇ¿¶È¡¢×Ü´ÎÊı
-    first_date = query_results['First_date']  # À×±©³õÈÕ
-
-    stats_of_province = query_results[u'Stats_of_Province']
-
     try:
-        # ******Ò³Ã¼Ò³½Å´¦Àí*******
-        # ÉèÖÃÊ×Ò³¡¢ÆæÅ¼Ò³µÄÒ³Ã¼Ò³½ÅÈ«²¿Ò»Ñù
-        doc.PageSetup.DifferentFirstPageHeaderFooter = False
-        doc.PageSetup.OddAndEvenPagesHeaderFooter = False
-        # ÕûÌåÌæ»»Ò³Ã¼
-        header = doc.Sections(2).Headers(1).Range
-        header.Find.ClearFormatting()
-        header.Find.Replacement.ClearFormatting()
-        header.Find.Execute(u'2015Äê', False, False, False, False, False, True, 1, False, year, 2)
-        header.Find.Execute(u'ÉÜĞËÊĞ', False, False, False, False, False, True, 1, False, target_area, 2)
-        # ÕûÌåÌæ»»Ò³½Å
-        footer = doc.Sections(2).Footers(1).Range
-        footer.Find.ClearFormatting()
-        footer.Find.Replacement.ClearFormatting()
-        footer.Find.Execute(u'2015Äê', False, False, False, False, False, True, 1, False, year, 2)
-        footer.Find.Execute(u'ÉÜĞËÊĞ', False, False, False, False, False, True, 1, False, target_area, 2)
-
-        # ******Ìæ»»Í¼Æ¬*********
-        word.Selection.Find.Execute(FindText=u'Í¼1-1 µØÉÁÃÜ¶È¿Õ¼ä·Ö²¼Í¼', Wrap=1)
-        word.Selection.MoveLeft(Count=3)
-        doc.InlineShapes(2).Delete()
-        densityPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
-                              year, target_area, u'ÉÁµçÃÜ¶È¿Õ¼ä·Ö²¼.png'])
-        word.Selection.InlineShapes.AddPicture(densityPic)
-
-        word.Selection.Find.Execute(FindText=u'Í¼1-2 µØÉÁÀ×±©ÈÕ¿Õ¼ä·Ö²¼Í¼', Wrap=1)
-        word.Selection.MoveLeft(Count=3)
-        doc.InlineShapes(3).Delete()
-        dayPic = ''.join([cwd, u'/temp/', province, u'/', year, u'/', target_area, u'.gdb/',
-                          year, target_area, u'µØÉÁÀ×±©ÈÕ¿Õ¼ä·Ö²¼.png'])
-        word.Selection.InlineShapes.AddPicture(dayPic)
-
-        #ÔÚwordÖĞ¶¨Î»
-        word.Selection.Find.Execute(FindText=u'Í¼1-3 µØÉÁ·ÖÔÂÍ³¼Æ', Wrap=1)
-        word.Selection.MoveLeft(Count=3)
-        #É¾³ıÔ­ÓĞÍ¼±í
-        doc.InlineShapes(4).Delete()
-        #¸´ÖÆExcelÖĞÍ¼±í
-        sheet = workbook.Worksheets(u'·ÖÔÂÍ³¼Æ')
-        sheet.ChartObjects(1).Chart.ChartArea.Copy()
-        #ÔÚwordÖĞÕ³Ìù
-        word.Selection.PasteAndFormat(1) #wdChartLinked
-
-        word.Selection.Find.Execute(FindText=u'Í¼1-4 µØÉÁ·ÖÊ±¶ÎÍ³¼Æ', Wrap=1)
-        word.Selection.MoveLeft(Count=3)
-        doc.InlineShapes(5).Delete()
-        sheet = workbook.Worksheets(u'·ÖÊ±¶ÎÍ³¼Æ')
-        sheet.ChartObjects(1).Chart.ChartArea.Copy()
-        word.Selection.PasteAndFormat(1) #wdChartLinked
-
-        word.Selection.Find.Execute(FindText=u'Í¼1-5 ¸ºµØÉÁÇ¿¶È·Ö²¼', Wrap=1)
-        word.Selection.MoveLeft(Count=3)
-        doc.InlineShapes(6).Delete()
-        sheet = workbook.Worksheets(u'Ç¿¶È·Ö²¼Í³¼Æ')
-        sheet.ChartObjects(1).Chart.ChartArea.Copy()
-        word.Selection.PasteAndFormat(1) #wdChartLinked
-
-        word.Selection.Find.Execute(FindText=u'Í¼ 1-6 ÕıµØÉÁÇ¿¶È·Ö²¼', Wrap=1)
-        word.Selection.MoveLeft(Count=3)
-        doc.InlineShapes(7).Delete()
-        sheet.ChartObjects(2).Chart.ChartArea.Copy()
-        word.Selection.PasteAndFormat(1) #wdChartLinked
-
-
-        #************´¦Àí±í¸ñ**************
-        if province == u'Õã½­':
-            regions = [u'º¼Öİ',u'Äş²¨',u'ºşÖİ', u'¼ÎĞË', u'ÉÜĞË', u'½ğ»ª', u'Ì¨Öİ', u'ÎÂÖİ', u'áéÖİ', u'ÀöË®', u'ÖÛÉ½',u'×Ü¼Æ']
-            countries = [u'Ô½³ÇÇø', u'¿ÂÇÅÇø', u'ÉÏÓİÇø', u'ÖîôßÊĞ', u'áÓÖİÊĞ', u'ĞÂ²ıÏØ', u'×Ü¼Æ']
-            n_regions = len(regions)
-            n_countries = len(countries)
-
-            table_region  = doc.Tables(1)
-            for i in range(n_countries):
-                table_region.Cell(2,i+2).Range.Text = str(stats_of_region[countries[i]][0])#µØÉÁ´ÎÊı
-                table_region.Cell(3,i+2).Range.Text = str(stats_of_region[countries[i]][1])#Æ½¾ùµØÉÁÃÜ¶È
-                table_region.Cell(4,i+2).Range.Text = str(stats_of_region[countries[i]][4])#Æ½¾ùÀ×±©ÈÕ
-
-            table_province = doc.Tables(2)
-            for i in range(n_regions):
-                for j in range(2):
-                    table_province.Cell(j+2,i+2).Range.Text = str(stats_of_province[regions[i]][j])
-
-        elif province == u'ºÓÄÏ':
-            regions = [u'Ö£Öİ',u'¿ª·â',u'ÂåÑô',u'Æ½¶¥É½',u'°²Ñô',u'º×±Ú',u'ĞÂÏç',u'½¹×÷',u'å§Ñô',
-                       u'Ğí²ı',u'äğºÓ',u'ÈıÃÅÏ¿',u'ÉÌÇğ',u'ÖÜ¿Ú',u'×¤Âíµê',u'ÄÏÑô',u'ĞÅÑô',u'¼ÃÔ´', u'×Ü¼Æ']
-            countries = [u'ÊĞÇø', u'ĞÂÏçÏØ', u'»ÔÏØÊĞ', u'ÎÀ»ÔÊĞ', u'»ñ¼ÎÏØ', u'Ô­ÑôÏØ',u'ÑÓ½òÏØ', u'·âÇğÏØ', u'³¤Ô«ÏØ', u'×Ü¼Æ']
-            n_regions = len(regions)
-            n_countries = len(countries)
-
-            table_region  = doc.Tables(1)
-            for i in range(n_countries):
-                table_region.Cell(2,i+2).Range.Text = str(stats_of_region[countries[i]][0])#µØÉÁ´ÎÊı
-                table_region.Cell(3,i+2).Range.Text = str(stats_of_region[countries[i]][1])#Æ½¾ùµØÉÁÃÜ¶È
-                table_region.Cell(4,i+2).Range.Text = str(stats_of_region[countries[i]][4])#Æ½¾ùÀ×±©ÈÕ
-
-            table_province = doc.Tables(2)
-            for i in range(10):
-                for j in range(2):
-                    table_province.Cell(j+2,i+2).Range.Text = str(stats_of_province[regions[i]][j])
-            table_province_xu = doc.Tables(3)
-            for i in range(9):
-                for j in range(2):
-                    table_province_xu.Cell(j+2,i+2).Range.Text = str(stats_of_province[regions[i+10]][j])
-
-        #****************¶ÎÂäÎÄ×Ö´¦Àí*******************
-        # ´¦ÀíÓëÈ¥ÄêµÄ¶Ô±ÈÇé¿ö
-        query_results_path = ''.join([cwd, u"/temp/", province, '/', year, '/', target_area, '.gdb/', 'sum_target_area_for_next_year.pkl'])
-        last_year_query_results_path = query_results_path.replace(year, str(int(year[:-1]) - 1) + u'Äê')
-        if os.path.exists(last_year_query_results_path):
-            f = open(last_year_query_results_path, 'rb')
-            sum_target_area_last_year = pickle.load(f)
-            f.close()
-
-            rate = (sum_target_area - sum_target_area_last_year) / float(sum_target_area_last_year)
-
-            if 0.05 <= rate < 0.1:
-                compare = u'ÂÔÓĞÔö¶à'
-            elif 0.1 <= rate < 0.3:
-                compare = u'ÓĞËùÔö¶à'
-            elif 0.3 <= rate < 0.9:
-                compare = u'Ôö·ù½Ï´ó'
-            elif 0.9 <= rate:
-                compare = u'´ó·ùÔö¶à'
-
-            elif -0.1 < rate <= -0.05:
-                compare = u'ÂÔÓĞ¼õÉÙ'
-            elif -0.3 < rate <= -0.1:
-                compare = u'ÓĞËù¼õÉÙ'
-            elif -0.9 < rate <= -0.3:
-                compare = u'¼õ·ù½Ï´ó'
-            elif rate <= -0.9:
-                compare = u'´ó·ù¼õÉÙ'
-            else:
-                compare = u'»ù±¾³ÖÆ½'
-
-            compare_with_last_year = u'ÓëÉÏÄêµÄµØÉÁ%d´ÎÏà±È£¬%s¡£' % (sum_target_area_last_year, compare)
-        else:
-            compare_with_last_year = ''
-
-        if density_target_area > density_province:
-            compare_with_province = u'¸ßÓÚ'
-        else:
-            compare_with_province = u'µÍÓÚ'
-
-        p1 = u'%sÎÒÊĞ¹²·¢ÉúµØÉÁ%d´Î£¬Æ½¾ùµØÉÁÃÜ¶È%.2f´Î/km?£¬Æ½¾ùÀ×±©ÈÕ%dÌì£¨¼û±í1-1£©¡£%s\
-´ÓÊ±¼ä·Ö²¼À´¿´£¬µØÉÁÖ÷Òª¼¯ÖĞÔÚ%d¡¢%d¡¢%dÔÂ£¬Èı¸öÔÂµØÉÁÕ¼È«Äê×ÜµØÉÁ´ÎÊıµÄ%.2f%%¡£´Ó¿Õ¼ä·Ö²¼À´¿´£¬%s·¢ÉúµØÉÁ´ÎÊı×î¶à£¬%s×îÉÙ¡£\
-È«ÊĞµØÉÁÆ½¾ùÃÜ¶È%sÈ«Ê¡Æ½¾ùµÄ%.2f´Î/km?£¬ÔÚÈ«Ê¡¸÷ÊĞÖĞ%sÉÁ´ÎÊıÅÅµÚ%dÎ»£¬µØÉÁÆ½¾ùÃÜ¶ÈÅÅµÚ%dÎ»£¨¼û±í1-2£©¡£' % (
-            year, sum_target_area, density_target_area, day_target_area, compare_with_last_year,
-            max_three_months[0], max_three_months[1], max_three_months[2], max_months_percent,
-            sum_max_county_name, sum_min_county_name, compare_with_province, density_province,
-            target_area, sum_rank_in_province, density_rank_in_province)
-
-
-        p2 = u'¾İ²»ÍêÈ«Í³¼Æ£¬2016ÄêÈ«ÊĞÒòÀ×µçÒı·¢µÄÔÖº¦¹²148Æğ£¬ÎŞÈËÔ±ÉËÍöÊÂ¹Ê¡£\
-Ôì³ÉÖ±½Ó¾­¼ÃËğÊ§´ï7788.04ÍòÔª£¬¼ä½Ó¾­¼ÃËğÊ§677.42ÍòÔª¡£'
-
-
-        p3 = u'´ÓµØÇøÍ³¼ÆÀ´¿´£¬µØÇø·Ö²¼Ïà¶Ô²»¾ù£¬%sµØÉÁ´ÎÊı×î¶à£¬¹²%d´Î£¬%s×îÉÙ£¬Ö»ÓĞ%d´Î£¬\
-Á½Õß·Ö±ğÕ¼È«ÊĞ×ÜµØÉÁÊıµÄ%.2f%%ºÍ%.2f%%¡£´ÓÆ½¾ùÃÜ¶ÈÍ³¼ÆÀ´¿´£¬%sÃÜ¶È×î¸ß£¬Îª%.2f´Î/km?£¬\
-%s×îµÍ£¬Îª%.2f´Î/km?£¨¼û±í1-1£©¡£' % (sum_max_county_name, sum_max_in_region, sum_min_county_name, sum_min_in_region,
-                              max_region_percent, min_region_percent,
-                              density_max_county_name, density_max_in_region,
-                              density_min_county_name, density_min_in_region)
-
-
-        p4 = u'´ÓµØÉÁÃÜ¶È¿Õ¼ä·Ö²¼Í¼ÉÏ£¨¼ûÍ¼1-1£©¿ÉÒÔ¿´³ö£¬ÖîôßÎ÷±±²¿¡¢áÓÖİºÍÖîôß½»½çÇøÓòµØÉÁÃÜ¶È½Ï¸ß£¬\
-×î¸ß³¬¹ı5´Î/km?¡£ĞÂ²ı¶«²¿ÓĞ²¿·ÖµØÇø£¬µØÉÁÃÜ¶È³¬¹ı3´Î/km?£¬È«ÊĞ´ó²¿·ÖµØÇøµØÉÁÃÜ¶ÈĞ¡ÓÚ2´Î/km?¡£'
-
-
-        p5 = u'ÏÖĞĞ¹ú¼Ò±ê×¼ËùÒıÓÃµÄÀ×±©ÈÕÖ¸ÈË¹¤¹Û²â£¨²âÕ¾ÖÜÎ§Ô¼15km°ë¾¶ÓòÃæ£©ÓĞÀ×±©ÌìÊıµÄ¶àÄêÆ½¾ù¡£\
-¸ù¾İÎÒÊ¡ÉÁµç¶¨Î»¼à²â×ÊÁÏÍÆËã£¨ÒÔ15kmÎª¼ä¸ô£¬·Ö±ğÍ³¼Æ¸÷µã15km°ë¾¶·¶Î§ÄÚµÄÀ×±©ÈÕ£¬ÔÙ²åÖµÍÆËã£©£¬\
-%sÈ«ÊĞµØÉÁÀ×±©ÈÕÆ½%dÌì£¬×îµÍÎª%dÌì£¬×î¸ß%dÌì¡£¿Õ¼ä·Ö²¼ÉÏÀ´¿´£¬±±²¿Æ½Ô­µØÇøÀ×±©ÈÕ½ÏÉÙ£¬\
-Î÷ÄÏ´ó²¿ºÍ¶«ÄÏ²¿·ÖÇøÓòÀ×±©ÌìÊı½Ï¶à£¨¼ûÍ¼1-2£©¡£'%(year, day_target_area,day_min_target,day_max_target)
-
-
-        if len(months_zero) == 0:
-            months_zero_description = u''
-        elif len(months_zero) == 1:
-            months_zero_description = u'%dÔÂÎ´¼à²âµ½µØÉÁ£¬' % months_zero[0]
-        elif len(months_zero) == 2:
-            months_zero_description = u'%dÔÂºÍ%dÔÂÎ´¼à²âµ½µØÉÁ£¬' % (months_zero[0], months_zero[1])
-        else:
-            s = u'ÔÂ¡¢'.join(map(lambda d: str(d), months_zero[:len(months_zero) - 1]))
-            months_zero_description = u''.join([s, u'ÔÂºÍ%dÔÂ¶¼Î´¼à²âµ½µØÉÁ£¬' % months_zero[-1]])
-
-        p6 = u'%s%sÀ×µç³õÈÕÎª%s¡£´Ó·ÖÔÂÍ³¼ÆÀ´¿´£¬µØÉÁ´ÎÊıËæÔÂ·İ³ÊÏÖ½üËÆÕıÌ¬·Ö²¼ÌØÕ÷£¬%s\
-µØÉÁ´ÎÊı·åÖµ³öÏÖÔÚ%dÔÂ£¬%d¡¢%d¡¢%dÔÂÊÇÀ×±©¸ß·¢µÄÔÂ·İ£¬Èı¸öÔÂµØÉÁ´ÎÊıÕ¼×ÜÊıµÄ%.2f%%¡£\
-Õı¡¢¸ºµØÉÁÆ½¾ùÇ¿¶ÈµÄ·åÖµ·Ö±ğÔÚ%dÔÂºÍ%dÔÂ£¬ÆäËûÔÂ·İ²¨¶¯Æ½»º(¼ûÍ¼1-3) ¡£' % (year, target_area,
-                                               first_date, months_zero_description,
-                                               max_month_region, max_three_months[0], max_three_months[1],
-                                               max_three_months[2],
-                                               max_months_percent,
-                                               peak_month_positive_intensity, peak_month_negative_intensity)
-
-
-        p7 = u'´Ó·ÖÊ±¶ÎÍ³¼ÆÀ´¿´£¬µØÉÁ´ÎÊı·åÖµ³öÏÖÔÚµÚ18¸öÊ±¶Î£¨17:00-18:00£©£¬µØÉÁÖ÷Òª¼¯ÖĞÔÚÎçºóÁ½µãµ½ÍíÉÏ¾Åµã£¬\
-Æß¸öÊ±¶ÎÄÚµÄµØÉÁ´ÎÊıÕ¼×ÜÊıµÄd%¡£µØÉÁÆ½¾ùÇ¿¶ÈËæÊ±¼ä³Ê²¨×´Æğ·üÌØÕ÷£¬µ«×ÜÌå²¨¶¯²»´ó¡£\
-ÕıÉÁÆ½¾ùÇ¿¶È·åÖµÔÚµÚ7¸öÊ±¶Î£¨7:00-8:00£©£¬¸ºÉÁÆ½¾ùÇ¿¶È·åÖµÔÚµÚ11¸öÊ±¶Î£¨11:00-12:00£©(¼ûÍ¼1-4)¡£'
-
-        p8 = u'ÓÉÕı¡¢¸ºµØÉÁÇ¿¶È·Ö²¼Í¼¿É¼û£¬µØÉÁ´ÎÊıËæµØÉÁÇ¿¶È³Ê½üËÆÕıÌ¬·Ö²¼ÌØÕ÷¡£ÕıµØÉÁÖ÷Òª¼¯ÖĞÔÚ5-60kAÄÚ£¨¼ûÍ¼1-5£©£¬\
-¸ÃÇø¼äÄÚÕıµØÉÁ´ÎÊıÔ¼Õ¼×ÜµØÉÁµÄ87.20%£¬¸ºµØÉÁÖ÷Òª·Ö²¼ÔÚ5-60kAÄÚ£¨¼ûÍ¼1-6£©£¬\
-¸ÃÇø¼äÄÚ¸ºµØÉÁ´ÎÊıÔ¼Õ¼×Ü¸ºµØÉÁµÄ91.46%¡£'
-
-        paragraphs = [p1,p2,p3,p4,p5,p6,p7,p8]
-        for i in range(8):
-            word.Selection.Find.Execute(FindText=u'#¶ÎÂä%d#'%(i+1), Wrap=1)
-            word.Selection.TypeText(Text = paragraphs[i])
+        query_results = sqlQuery(workbook, year, province, target_area, cwd)
+        docProcess(word, doc, workbook, query_results, year, province, target_area, cwd)
     finally:
         doc.Save()
         doc.Close()
         word.Quit()
-        workbook.Close()
-        excel.Quit()
+        workbook.Save()  # ä¿å­˜EXCELå·¥ä½œè–„
+        workbook.Close()  # å…³é—­å·¥ä½œè–„æ–‡ä»¶
+        excel.Quit()  # å…³é—­EXCELåº”ç”¨ç¨‹åº
+
 
 if __name__ == "__main__":
 
-    # (year, province, target_area,cwd) = sys.argv[1:]
-    # docProcess(year, province, target_area,cwd)
+    (year, province, target_area,cwd) = sys.argv[1:]
+    mainProcess(year, province, target_area,cwd)
 
-    year = u"2016Äê"
-    province = u'ºÓÄÏ'
-    target_area = u"ĞÂÏçÊĞ"
-
-    cwd = os.getcwd()
-    start = time.clock()
-    # ***********************²âÊÔ³ÌĞò*********************************"
-    docProcess(year, province, target_area, cwd)
-    # ***********************²âÊÔ³ÌĞò*********************************"
-    end = time.clock()
-    elapsed = end - start
-    print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))
+    # year = u"2014å¹´"
+    # province = u'æµ™æ±Ÿ'
+    # target_area = u"ç»å…´å¸‚"
+    #
+    # cwd = os.getcwd()
+    # start = time.clock()
+    # # ***********************æµ‹è¯•ç¨‹åº*********************************
+    # mainProcess(year, province, target_area, cwd)
+    # # docProcess(year, province, target_area, cwd)
+    # # ***********************æµ‹è¯•ç¨‹åº*********************************
+    # end = time.clock()
+    # elapsed = end - start
+    # print("Time used: %.6fs, %.6fms" % (elapsed, elapsed * 1000))
